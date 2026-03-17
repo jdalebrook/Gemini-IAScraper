@@ -52,8 +52,12 @@ def index():
         solo_top=solo_top
     )
 
+ESTADOS_VALIDOS = {'nuevo', 'favorito', 'oculto', 'importante', 'archivado'}
+
 @app.route('/accion/<int:id>/<estado>')
 def cambiar_estado(id, estado):
+    if estado not in ESTADOS_VALIDOS:
+        return redirect(request.referrer or url_for('index'))
     conn = get_db_connection()
     conn.execute('UPDATE noticias SET estado = ? WHERE id = ?', (estado, id))
     conn.commit()
@@ -62,4 +66,4 @@ def cambiar_estado(id, estado):
 
 if __name__ == '__main__':
     print(f"🌐 Panel Web iniciado usando DB en: {DB_PATH}")
-    app.run(debug=True, port=5000)
+    app.run(debug=False, port=5000)
