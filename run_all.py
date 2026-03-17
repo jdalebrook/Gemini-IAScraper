@@ -1,30 +1,25 @@
 import subprocess
-import time
 import webbrowser
-import os
+import time
 
-def ejecutar():
-    print("🚀 Iniciando AI News Curator 2026...")
+def ejecutar_todo():
+    print("🌐 Iniciando Panel Web...")
+    # Lanzamos la web en un proceso separado para que no bloquee
+    subprocess.Popen(["python", "app.py"])
 
-    # 1. Ejecutar Scraper
-    print("\n1. Buscando noticias nuevas...")
-    subprocess.run(["python", "scraper.py"])
-
-    # 2. Ejecutar Procesador IA (con el nuevo límite de tiempo)
-    print("\n2. Analizando con Gemini (esto puede tardar por la cuota gratuita)...")
-    print("Presiona Ctrl+C si quieres saltar este paso y ver lo que ya hay.")
-    try:
-        subprocess.run(["python", "ia_processor.py"])
-    except KeyboardInterrupt:
-        print("\n⏩ Procesamiento interrumpido por el usuario.")
-
-    # 3. Lanzar la interfaz Web
-    print("\n3. Abriendo panel de control...")
-    # Abrimos el navegador automáticamente
+    # Esperamos 2 segundos y abrimos el navegador
+    time.sleep(2)
     webbrowser.open("http://127.0.0.1:5000")
 
-    # Ejecutamos la app de Flask
-    subprocess.run(["python", "app.py"])
+    print("🛰️ Iniciando Scraper de noticias...")
+    subprocess.run(["python", "scraper.py"])
+
+    print("🧠 Iniciando Procesador de IA (Segundo plano)...")
+    # Popen permite que el script siga corriendo sin esperar a que la IA termine
+    subprocess.Popen(["python", "ia_processor.py"])
+
+    print("\n✅ TODO LISTO.")
+    print("La web ya está abierta. Las noticias aparecerán conforme Gemini las procese.")
 
 if __name__ == "__main__":
-    ejecutar()
+    ejecutar_todo()
