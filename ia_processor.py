@@ -7,15 +7,26 @@ from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 
-load_dotenv()
+# --- CONFIGURACIÓN DE RUTAS DINÁMICAS ---
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# Busca el .env en la carpeta actual o en la superior (por si lo mueves a /core)
+if os.path.exists(os.path.join(BASE_DIR, ".env")):
+    load_dotenv(os.path.join(BASE_DIR, ".env"))
+else:
+    load_dotenv(os.path.join(BASE_DIR, "..", ".env"))
+
+# Configuración de la DB: Busca en la raíz del proyecto
+DB_PATH = os.path.join(BASE_DIR, "noticias_ia.db")
+if not os.path.exists(DB_PATH):
+    DB_PATH = os.path.join(BASE_DIR, "..", "noticias_ia.db")
+# ---------------------------------------
 
 # =========================================================
 # 🎛️ PANEL DE CONTROL (AJUSTE SEGURO)
 # =========================================================
-MODO_PAGO = False          # 🛡️ Cambia a False para COSTE 0€ GARANTIZADO
+MODO_PAGO = False          # 🛡️ False = 0€ | True = Rápido pero con coste
 LIMITE_DIARIO = 800
 PRECIO_APROX_NOTICIA = 0.00012
-DB_PATH = "noticias_ia.db"
 # =========================================================
 
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
@@ -27,7 +38,6 @@ def obtener_stats_hoy():
             cursor = conn.cursor()
             cursor.execute('SELECT COUNT(*) FROM noticias WHERE titular_es IS NOT NULL AND created_at >= ?', (hoy,))
             total = cursor.fetchone()[0]
-            # Si estamos en modo gratis, el coste siempre se muestra como 0.0€
             coste = round(total * PRECIO_APROX_NOTICIA, 2) if MODO_PAGO else 0.0
             return total, coste
     except: return 0, 0.0
@@ -35,34 +45,42 @@ def obtener_stats_hoy():
 def procesar_con_gemini():
     procesadas_hoy, gasto_hoy = obtener_stats_hoy()
 
-    # Configuración de seguridad según el interruptor
     if MODO_PAGO:
         PAUSA, LOTE = 2, 20
-        tipo_modo = "⚡ MODO PAGO (CUIDADO)"
+        tipo_modo = "⚡ MODO PAGO"
         if procesadas_hoy >= LIMITE_DIARIO:
             print(f"🛑 LIMITE DIARIO ALCANZADO ({procesadas_hoy})")
             return "STOP"
     else:
-        # Forzamos lentitud para no salirnos nunca de la cuota free
         PAUSA, LOTE = 30, 5
-        tipo_modo = "🛡️ MODO GRATIS (SEGURO)"
+        tipo_modo = "🛡️ MODO GRATIS"
 
     with sqlite3.connect(DB_PATH) as conn:
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
-        cursor.execute(f'SELECT * FROM noticias WHERE titular_es IS NULL LIMIT {LOTE}')
+        # Priorizamos noticias más recientes que no tengan traducción
+        cursor.execute(f'SELECT * FROM noticias WHERE titular_es IS NULL ORDER BY id DESC LIMIT {LOTE}')
         filas = cursor.fetchall()
 
         if not filas: return False
 
-        print(f"{tipo_modo} | Gastado hoy: {gasto_hoy}€ | Procesando {len(filas)} noticias...")
+        print(f"{tipo_modo} | Gastado hoy: {gasto_hoy}€ | Pendientes: {len(filas)}")
 
         for fila in filas:
             try:
-                # Usamos gemini-flash-latest: compatible con free y pago
+                # Prompt mejorado para obtener mejores puntuaciones de fiabilidad
+                prompt = (
+                    f"Analiza esta noticia de IA: {fila['titulo_original']}. "
+                    "Responde estrictamente en JSON con este formato: "
+                    "{'titular_es': 'Traducido al español profesional', "
+                    "'resumen_es': 'Resumen en una frase', "
+                    "'score': (1-10 siendo 10 ciencia probada y 1 rumor/clickbait), "
+                    "'razon': 'Breve explicación del score'}"
+                )
+
                 response = client.models.generate_content(
                     model='gemini-flash-latest',
-                    contents=f"Analiza y responde en JSON. Noticia: {fila['titulo_original']}. JSON: {{'titular_es': '...', 'resumen_es': '...', 'score': 1-10, 'razon': '...'}}",
+                    contents=prompt,
                     config=types.GenerateContentConfig(
                         response_mime_type='application/json',
                     ),
@@ -70,37 +88,41 @@ def procesar_con_gemini():
 
                 data = json.loads(response.text)
 
-                titular = data.get('titular_es') or data.get('titular') or "Sin título"
-                resumen = data.get('resumen_es') or data.get('resumen') or "Sin resumen"
-                score = data.get('score') or 5
-                razon = data.get('razon') or data.get('analisis') or ""
-
                 cursor.execute('''
-                    UPDATE noticias SET titular_es=?, resumen_es=?, score_fiabilidad=?, analisis_objetivo=?
+                    UPDATE noticias SET
+                    titular_es=?, resumen_es=?, score_fiabilidad=?, analisis_objetivo=?
                     WHERE id=?
-                ''', (titular, resumen, score, razon, fila['id']))
+                ''', (
+                    data.get('titular_es', 'Sin título'),
+                    data.get('resumen_es', 'Sin resumen'),
+                    data.get('score', 5),
+                    data.get('razon', ''),
+                    fila['id']
+                ))
                 conn.commit()
 
-                print(f"  ✅ {titular[:50]}...")
+                print(f"  ✅ [{data.get('score')}/10] {data.get('titular_es')[:45]}...")
                 time.sleep(PAUSA)
 
             except Exception as e:
-                # Si estamos en modo gratis y Google nos frena por velocidad
                 if "429" in str(e):
-                    print("🛑 Límite de velocidad gratuito alcanzado. Esperando 1 minuto...")
+                    print("🛑 Cuota agotada temporalmente. Esperando 1 min...")
                     time.sleep(60)
                 else:
-                    print(f"⚠️ Error: {e}")
+                    print(f"⚠️ Error en noticia {fila['id']}: {e}")
                 break
     return True
 
 if __name__ == "__main__":
-    print(f"--- INICIANDO PROCESADOR (MODO: {'PAGO' if MODO_PAGO else 'GRATIS'}) ---")
+    print(f"--- INICIANDO PROCESADOR ---")
     while True:
-        res = procesar_con_gemini()
-        if res == "STOP":
-            time.sleep(3600)
-            continue
-        if not res:
-            print("☕ Sin noticias nuevas. Reintentando en 10 min...")
-            time.sleep(600)
+        try:
+            res = procesar_con_gemini()
+            if res == "STOP":
+                time.sleep(3600)
+            elif not res:
+                print("☕ Todo procesado. Esperando 10 min...")
+                time.sleep(600)
+        except KeyboardInterrupt:
+            print("\n👋 Cerrando procesador...")
+            break

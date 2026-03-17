@@ -3,25 +3,35 @@ import sqlite3
 import os
 
 app = Flask(__name__)
-DB_PATH = "noticias_ia.db"
+
+# --- CONFIGURACIÓN DE RUTAS INTELIGENTE ---
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# Busca la DB en la raíz o en una carpeta /data si decides moverla luego
+DB_PATH = os.path.join(BASE_DIR, "noticias_ia.db")
+if not os.path.exists(DB_PATH):
+    DB_PATH = os.path.join(BASE_DIR, "data", "noticias_ia.db")
+# ------------------------------------------
 
 def get_db_connection():
     """Establece conexión con la base de datos SQLite."""
     conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row  # Permite acceder a las columnas por nombre
+    conn.row_factory = sqlite3.Row
     return conn
 
 @app.route('/')
 def index():
-    # Obtenemos la categoría desde la URL (ej: /?cat=COSMOS)
     categoria_filtro = request.args.get('cat')
+    # Nuevo filtro: ¿Queremos ver solo lo mejor? (Ej: /?top=1)
+    solo_top = request.args.get('top') == '1'
+
     conn = get_db_connection()
 
-    # 1. Sacamos todas las categorías únicas que existen para generar las pestañas automáticamente
-    categorias = conn.execute('SELECT DISTINCT categoria FROM noticias WHERE categoria IS NOT NULL').fetchall()
+    # 1. Generación dinámica de pestañas (esto evita que "IA" desaparezca)
+    categorias_rows = conn.execute(
+        'SELECT DISTINCT categoria FROM noticias WHERE categoria IS NOT NULL ORDER BY categoria'
+    ).fetchall()
 
-    # 2. Construcción de la consulta principal
-    # Solo mostramos noticias ya procesadas (titular_es no nulo) y que no estén ocultas
+    # 2. Construcción de la consulta con Filtro de Calidad
     query = 'SELECT * FROM noticias WHERE titular_es IS NOT NULL AND estado != "oculto"'
     params = []
 
@@ -29,8 +39,12 @@ def index():
         query += ' AND categoria = ?'
         params.append(categoria_filtro)
 
-    # Ordenamos por las más recientes y limitamos a 50 para no saturar el navegador
-    query += ' ORDER BY created_at DESC LIMIT 100'
+    # Si activamos el modo 'top', solo mostramos noticias con score >= 7
+    if solo_top:
+        query += ' AND score_fiabilidad >= 7'
+
+    # Ordenamos por las más recientes (procesadas) y limitamos
+    query += ' ORDER BY id DESC LIMIT 100'
 
     noticias = conn.execute(query, params).fetchall()
     conn.close()
@@ -38,25 +52,19 @@ def index():
     return render_template(
         'index.html',
         noticias=noticias,
-        categorias=categorias,
-        cat_activa=categoria_filtro
+        categorias=categorias_rows,
+        cat_activa=categoria_filtro,
+        solo_top=solo_top
     )
 
 @app.route('/accion/<int:id>/<estado>')
 def cambiar_estado(id, estado):
-    """
-    Cambia el estado de una noticia (favorito, oculto, nuevo).
-    Se llama desde los botones de la interfaz.
-    """
     conn = get_db_connection()
     conn.execute('UPDATE noticias SET estado = ? WHERE id = ?', (estado, id))
     conn.commit()
     conn.close()
-
-    # Redirige a la página anterior para no perder el filtro de categoría
     return redirect(request.referrer or url_for('index'))
 
 if __name__ == '__main__':
-    # Lanzamos el servidor en modo debug para ver errores en tiempo real
-    print("🌐 Panel Web Multi-Temático iniciado en http://127.0.0.1:5000")
-    app.run(debug=True)
+    print(f"🌐 Panel Web iniciado usando DB en: {DB_PATH}")
+    app.run(debug=True, port=5000)

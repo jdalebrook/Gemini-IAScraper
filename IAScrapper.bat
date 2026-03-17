@@ -3,10 +3,16 @@
 set PROJECT_DIR=%~dp0
 cd /d "%PROJECT_DIR%"
 
-echo 🚀 Iniciando entorno virtual...
-call venv\Scripts\activate
+echo 🚀 Activando Entorno Virtual...
+if exist venv\Scripts\activate (
+    call venv\Scripts\activate
+) else (
+    echo ⚠️ No se encontró la carpeta venv. Asegúrate de haberla creado.
+    pause
+    exit
+)
 
-echo 🤖 Ejecutando AI News Curator...
+echo 🤖 Lanzando Suite AI News Curator...
 python run_all.py
 
 pause

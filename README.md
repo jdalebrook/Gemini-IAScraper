@@ -59,3 +59,5 @@ subprocess.run(["python", "scraper.py"])
 
 if __name__ == "__main__":
 ejecutar_sistema()
+
+

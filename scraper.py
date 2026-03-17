@@ -4,16 +4,24 @@ import hashlib
 import json
 import os
 
-DB_PATH = "noticias_ia.db"
-# 1. Definimos el límite aquí para que sea fácil de cambiar en el futuro
+# CONFIGURACIÓN DE RUTAS (Adaptable a Refactor)
+# Esto detecta si el archivo está en la raíz o en una carpeta /core
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(BASE_DIR, "noticias_ia.db")
+# Nota: Si mueves este script a /core, cambia la línea de arriba por:
+# DB_PATH = os.path.join(BASE_DIR, "..", "noticias_ia.db")
+
+# LÍMITES PARA EVITAR SESGOS
 LIMIT_POR_CATEGORIA = 50
+LIMIT_POR_FUENTE = 8  # 💡 Máximo 8 noticias de cada fuente para asegurar diversidad
 
 def extraer_noticias():
-    # Buscar todos los archivos de feeds en la carpeta actual
-    archivos_feeds = [f for f in os.listdir('.') if f.startswith('feeds_') and f.endswith('.json')]
+    # Buscamos los JSON en la raíz (ajustar a 'config/feeds/' tras el refactor)
+    ruta_feeds = BASE_DIR
+    archivos_feeds = [f for f in os.listdir(ruta_feeds) if f.startswith('feeds_') and f.endswith('.json')]
 
     if not archivos_feeds:
-        print("⚠️ No se encontraron archivos 'feeds_*.json'. Revisa los nombres.")
+        print("⚠️ No se encontraron archivos 'feeds_*.json'.")
         return
 
     with sqlite3.connect(DB_PATH) as conn:
@@ -21,25 +29,25 @@ def extraer_noticias():
 
         for archivo in archivos_feeds:
             categoria = archivo.replace('feeds_', '').replace('.json', '').upper()
-            print(f"\n📂 Procesando categoría: {categoria}")
+            print(f"\n📂 CATEGORÍA: {categoria}")
 
-            # 2. Inicializamos el contador para esta categoría específica
-            noticias_guardadas = 0
+            noticias_totales_cat = 0
 
-            with open(archivo, "r", encoding='utf-8') as f:
+            with open(os.path.join(ruta_feeds, archivo), "r", encoding='utf-8') as f:
                 fuentes = json.load(f)
 
             for nombre_fuente, url_feed in fuentes.items():
-                # 3. Si ya alcanzamos el límite, no abrimos más fuentes de esta categoría
-                if noticias_guardadas >= LIMIT_POR_CATEGORIA:
+                if noticias_totales_cat >= LIMIT_POR_CATEGORIA:
                     break
 
-                print(f"  📡 Explorando {nombre_fuente}...")
+                print(f"  📡 {nombre_fuente.ljust(15)} |", end=" ")
+                noticias_fuente = 0
+
                 try:
                     feed = feedparser.parse(url_feed)
                     for entrada in feed.entries:
-                        # 4. Verificación de seguridad dentro del bucle de noticias
-                        if noticias_guardadas >= LIMIT_POR_CATEGORIA:
+                        # 🛡️ Doble filtro: límite por fuente Y límite total por categoría
+                        if noticias_fuente >= LIMIT_POR_FUENTE or noticias_totales_cat >= LIMIT_POR_CATEGORIA:
                             break
 
                         url = entrada.get("link", "")
@@ -52,19 +60,21 @@ def extraer_noticias():
                                 VALUES (?, ?, ?, ?, ?)
                             ''', (link_hash, nombre_fuente, categoria, titulo, url))
 
-                            # 5. Solo sumamos al contador si la noticia es NUEVA
-                            noticias_guardadas += 1
+                            noticias_fuente += 1
+                            noticias_totales_cat += 1
 
                         except sqlite3.IntegrityError:
-                            # Si ya existe en la DB, no cuenta para el límite de "nuevas"
                             continue
-                except Exception as e:
-                    print(f"  ❌ Error en fuente {nombre_fuente}: {e}")
 
-            print(f"  ✅ Total nuevas en {categoria}: {noticias_guardadas}")
+                    print(f"Nuevas: {noticias_fuente}")
+
+                except Exception as e:
+                    print(f"❌ Error: {e}")
+
+            print(f"  ✅ Total {categoria}: {noticias_totales_cat} noticias.")
 
         conn.commit()
-    print("\n✅ ¡Scrapeo optimizado (50 por categoría) completado!")
+    print("\n✨ Scrapeo finalizado con éxito.")
 
 if __name__ == "__main__":
     extraer_noticias()
