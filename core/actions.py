@@ -1,6 +1,8 @@
 import sqlite3
+import os
 
-DB_PATH = "noticias_ia.db"
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DB_PATH = os.path.join(PROJECT_ROOT, "data", "noticias_ia.db")
 
 def marcar_noticia(id_noticia, nuevo_estado):
     """Estados: 'favorito', 'oculto', 'importante', 'archivado'"""
@@ -27,5 +29,4 @@ def listar_top_noticias(min_score=8):
             print(f"[{fila[0]}] ⭐ {fila[2]}/10 - {fila[1]}")
 
 if __name__ == "__main__":
-    # Prueba listando lo que ya procesaste
     listar_top_noticias()

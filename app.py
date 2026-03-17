@@ -2,15 +2,10 @@ from flask import Flask, render_template, request, redirect, url_for
 import sqlite3
 import os
 
-app = Flask(__name__)
-
-# --- CONFIGURACIÓN DE RUTAS INTELIGENTE ---
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-# Busca la DB en la raíz o en una carpeta /data si decides moverla luego
-DB_PATH = os.path.join(BASE_DIR, "noticias_ia.db")
-if not os.path.exists(DB_PATH):
-    DB_PATH = os.path.join(BASE_DIR, "data", "noticias_ia.db")
-# ------------------------------------------
+DB_PATH = os.path.join(BASE_DIR, "data", "noticias_ia.db")
+
+app = Flask(__name__, template_folder='app/templates', static_folder='app/static')
 
 def get_db_connection():
     """Establece conexión con la base de datos SQLite."""

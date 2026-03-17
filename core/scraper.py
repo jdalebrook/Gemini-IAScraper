@@ -4,24 +4,18 @@ import hashlib
 import json
 import os
 
-# CONFIGURACIÓN DE RUTAS (Adaptable a Refactor)
-# Esto detecta si el archivo está en la raíz o en una carpeta /core
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(BASE_DIR, "noticias_ia.db")
-# Nota: Si mueves este script a /core, cambia la línea de arriba por:
-# DB_PATH = os.path.join(BASE_DIR, "..", "noticias_ia.db")
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DB_PATH = os.path.join(PROJECT_ROOT, "data", "noticias_ia.db")
+FEEDS_DIR = os.path.join(PROJECT_ROOT, "config", "feeds")
 
-# LÍMITES PARA EVITAR SESGOS
 LIMIT_POR_CATEGORIA = 50
-LIMIT_POR_FUENTE = 8  # 💡 Máximo 8 noticias de cada fuente para asegurar diversidad
+LIMIT_POR_FUENTE = 8
 
 def extraer_noticias():
-    # Buscamos los JSON en la raíz (ajustar a 'config/feeds/' tras el refactor)
-    ruta_feeds = BASE_DIR
-    archivos_feeds = [f for f in os.listdir(ruta_feeds) if f.startswith('feeds_') and f.endswith('.json')]
+    archivos_feeds = [f for f in os.listdir(FEEDS_DIR) if f.startswith('feeds_') and f.endswith('.json')]
 
     if not archivos_feeds:
-        print("⚠️ No se encontraron archivos 'feeds_*.json'.")
+        print("⚠️ No se encontraron archivos 'feeds_*.json' en config/feeds/.")
         return
 
     with sqlite3.connect(DB_PATH) as conn:
@@ -33,7 +27,7 @@ def extraer_noticias():
 
             noticias_totales_cat = 0
 
-            with open(os.path.join(ruta_feeds, archivo), "r", encoding='utf-8') as f:
+            with open(os.path.join(FEEDS_DIR, archivo), "r", encoding='utf-8') as f:
                 fuentes = json.load(f)
 
             for nombre_fuente, url_feed in fuentes.items():
@@ -46,7 +40,6 @@ def extraer_noticias():
                 try:
                     feed = feedparser.parse(url_feed)
                     for entrada in feed.entries:
-                        # 🛡️ Doble filtro: límite por fuente Y límite total por categoría
                         if noticias_fuente >= LIMIT_POR_FUENTE or noticias_totales_cat >= LIMIT_POR_CATEGORIA:
                             break
 

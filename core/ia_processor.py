@@ -7,24 +7,14 @@ from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 
-# --- CONFIGURACIÓN DE RUTAS DINÁMICAS ---
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-# Busca el .env en la carpeta actual o en la superior (por si lo mueves a /core)
-if os.path.exists(os.path.join(BASE_DIR, ".env")):
-    load_dotenv(os.path.join(BASE_DIR, ".env"))
-else:
-    load_dotenv(os.path.join(BASE_DIR, "..", ".env"))
-
-# Configuración de la DB: Busca en la raíz del proyecto
-DB_PATH = os.path.join(BASE_DIR, "noticias_ia.db")
-if not os.path.exists(DB_PATH):
-    DB_PATH = os.path.join(BASE_DIR, "..", "noticias_ia.db")
-# ---------------------------------------
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+load_dotenv(os.path.join(PROJECT_ROOT, ".env"))
+DB_PATH = os.path.join(PROJECT_ROOT, "data", "noticias_ia.db")
 
 # =========================================================
 # 🎛️ PANEL DE CONTROL (AJUSTE SEGURO)
 # =========================================================
-MODO_PAGO = False          # 🛡️ False = 0€ | True = Rápido pero con coste
+MODO_PAGO = False          # False = 0€ | True = Rápido pero con coste
 LIMITE_DIARIO = 800
 PRECIO_APROX_NOTICIA = 0.00012
 # =========================================================
@@ -40,7 +30,8 @@ def obtener_stats_hoy():
             total = cursor.fetchone()[0]
             coste = round(total * PRECIO_APROX_NOTICIA, 2) if MODO_PAGO else 0.0
             return total, coste
-    except: return 0, 0.0
+    except:
+        return 0, 0.0
 
 def procesar_con_gemini():
     procesadas_hoy, gasto_hoy = obtener_stats_hoy()
@@ -58,17 +49,16 @@ def procesar_con_gemini():
     with sqlite3.connect(DB_PATH) as conn:
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
-        # Priorizamos noticias más recientes que no tengan traducción
         cursor.execute(f'SELECT * FROM noticias WHERE titular_es IS NULL ORDER BY id DESC LIMIT {LOTE}')
         filas = cursor.fetchall()
 
-        if not filas: return False
+        if not filas:
+            return False
 
         print(f"{tipo_modo} | Gastado hoy: {gasto_hoy}€ | Pendientes: {len(filas)}")
 
         for fila in filas:
             try:
-                # Prompt mejorado para obtener mejores puntuaciones de fiabilidad
                 prompt = (
                     f"Analiza esta noticia de IA: {fila['titulo_original']}. "
                     "Responde estrictamente en JSON con este formato: "

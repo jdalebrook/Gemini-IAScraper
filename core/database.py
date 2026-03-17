@@ -1,10 +1,13 @@
 import sqlite3
+import os
+
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DB_PATH = os.path.join(PROJECT_ROOT, "data", "noticias_ia.db")
 
 def setup_db():
-    conn = sqlite3.connect("noticias_ia.db")
+    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
-    # 1. Crear la tabla si no existe (con todas las columnas)
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS noticias (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -24,15 +27,12 @@ def setup_db():
         )
     ''')
 
-    # 2. SEGURO ANTI-ERRORES: Intentar añadir las columnas una a una
-    # por si la tabla ya existía de antes sin ellas.
     columnas_nuevas = ["categoria", "etiquetas"]
     for col in columnas_nuevas:
         try:
             cursor.execute(f'ALTER TABLE noticias ADD COLUMN {col} TEXT')
             print(f"✅ Columna '{col}' añadida con éxito.")
         except sqlite3.OperationalError:
-            # Si entra aquí es porque la columna ya existe, así que no hacemos nada
             print(f"ℹ️ La columna '{col}' ya estaba presente.")
 
     conn.commit()
