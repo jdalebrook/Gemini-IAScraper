@@ -5,15 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="b525498c-eecc-41c9-87d9-f9938fbaed46" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/feeds_cosmos.json" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/feeds_fisica.json" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/feeds_psicologia.json" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/feeds_tecnologia.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/app.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/database.py" beforeDir="false" afterPath="$PROJECT_DIR$/database.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ia_processor.py" beforeDir="false" afterPath="$PROJECT_DIR$/ia_processor.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/scraper.py" beforeDir="false" afterPath="$PROJECT_DIR$/scraper.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/templates/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/index.html" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -68,7 +61,7 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1773734302839</updated>
-      <workItem from="1773734303920" duration="4141000" />
+      <workItem from="1773734303920" duration="6091000" />
     </task>
     <servers />
   </component>
