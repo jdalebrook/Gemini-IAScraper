@@ -1,0 +1,9 @@
+{
+  "Phys_org": "https://phys.org/rss-feed/physics-news/",
+  "Physics_World": "https://physicsworld.com/feed/",
+  "CERN_News": "https://home.cern/news/feed",
+  "NATURE_Physics": "https://www.nature.com/nphys.rss",
+  "Space_dot_com": "https://www.space.com/feeds/all",
+  "APS_Physics": "https://physics.aps.org/feeds/rss/all",
+  "ArXiv_Physics": "http://export.arxiv.org/rss/physics"
+}

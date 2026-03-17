@@ -3,51 +3,54 @@ import sqlite3
 import hashlib
 import json
 import os
-from datetime import datetime
 
 DB_PATH = "noticias_ia.db"
 
-def generar_hash(url):
-    # Crea un identificador único basado en la URL
-    return hashlib.md5(url.encode()).hexdigest()
-
 def extraer_noticias():
-    if not os.path.exists("feeds_rss.json"):
-        print("❌ No se encuentra feeds_rss.json")
+    # 1. Buscar todos los archivos de feeds en la carpeta actual
+    archivos_feeds = [f for f in os.listdir('.') if f.startswith('feeds_') and f.endswith('.json')]
+
+    if not archivos_feeds:
+        print("⚠️ No se encontraron archivos 'feeds_*.json'. Revisa los nombres.")
         return
-
-    with open("feeds_rss.json", "r") as f:
-        fuentes = json.load(f)
-
-    nuevas_noticias = 0
 
     with sqlite3.connect(DB_PATH) as conn:
         cursor = conn.cursor()
 
-        for nombre_fuente, url_feed in fuentes.items():
-            print(f"📡 Explorando {nombre_fuente}...")
-            feed = feedparser.parse(url_feed)
+        for archivo in archivos_feeds:
+            # Extraemos el nombre de la categoría del nombre del archivo
+            # Ejemplo: 'feeds_cosmos.json' -> 'COSMOS'
+            categoria = archivo.replace('feeds_', '').replace('.json', '').upper()
 
-            for entrada in feed.entries:
-                url = entrada.get("link", "")
-                link_hash = generar_hash(url)
-                titulo = entrada.get("title", "")
-                fecha = entrada.get("published", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+            print(f"\n📂 Procesando categoría: {categoria}")
 
-                # Intentamos insertar. Si el hash ya existe, el 'UNIQUE' de SQL lo ignorará
+            with open(archivo, "r", encoding='utf-8') as f:
+                fuentes = json.load(f)
+
+            for nombre_fuente, url_feed in fuentes.items():
+                print(f"  📡 Explorando {nombre_fuente}...")
                 try:
-                    cursor.execute('''
-                        INSERT INTO noticias (link_hash, fuente, titulo_original, url, fecha_publicacion)
-                        VALUES (?, ?, ?, ?, ?)
-                    ''', (link_hash, nombre_fuente, titulo, url, fecha))
-                    nuevas_noticias += 1
-                except sqlite3.IntegrityError:
-                    # Esto significa que la noticia ya está en la base de datos
-                    continue
+                    feed = feedparser.parse(url_feed)
+                    for entrada in feed.entries:
+                        url = entrada.get("link", "")
+                        # Creamos un hash único para no duplicar noticias
+                        link_hash = hashlib.md5(url.encode()).hexdigest()
+
+                        titulo = entrada.get("title", "Sin título")
+
+                        try:
+                            cursor.execute('''
+                                INSERT INTO noticias (link_hash, fuente, categoria, titulo_original, url)
+                                VALUES (?, ?, ?, ?, ?)
+                            ''', (link_hash, nombre_fuente, categoria, titulo, url))
+                        except sqlite3.IntegrityError:
+                            # Si ya existe, simplemente pasamos a la siguiente
+                            continue
+                except Exception as e:
+                    print(f"  ❌ Error en fuente {nombre_fuente}: {e}")
 
         conn.commit()
-
-    print(f"✨ Proceso terminado. Se han añadido {nuevas_noticias} noticias nuevas.")
+    print("\n✅ ¡Scrapeo multitemático completado!")
 
 if __name__ == "__main__":
     extraer_noticias()

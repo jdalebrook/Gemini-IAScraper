@@ -18,18 +18,35 @@ def procesar_con_gemini():
     )
 
     with sqlite3.connect(DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row # IMPORTANTE: Para leer categorías por nombre
         cursor = conn.cursor()
-        # Procesamos en lotes de 10 para ver resultados rápido en la web
-        cursor.execute('SELECT id, titulo_original, url FROM noticias WHERE titular_es IS NULL LIMIT 10')
+
+        # Seleccionamos la categoría también para dársela a la IA
+        cursor.execute('SELECT id, titulo_original, url, categoria FROM noticias WHERE titular_es IS NULL LIMIT 10')
         filas = cursor.fetchall()
 
         if not filas:
-            return False # No hay nada que procesar
+            return False
 
         print(f"🤖 [{datetime.now().strftime('%H:%M')}] Procesando lote de {len(filas)} noticias...")
 
-        for id_noticia, titulo, url in filas:
-            prompt = f"Analiza esta noticia tecnológica y responde en JSON: Título: {titulo}, URL: {url}. Estructura: titular_es, resumen_es, score, razon."
+        for fila in filas:
+            id_noticia = fila['id']
+            # Prompt dinámico según la categoría
+            prompt = f"""
+            Actúa como un experto en {fila['categoria']}.
+            Analiza esta noticia y responde estrictamente en JSON:
+            Título: {fila['titulo_original']}
+            URL: {fila['url']}
+
+            Estructura:
+            {{
+                "titular_es": "Titular profesional en español",
+                "resumen_es": "Resumen de 2 frases",
+                "score": 1-10,
+                "razon": "Explicación breve de la fiabilidad"
+            }}
+            """
 
             try:
                 response = model.generate_content(prompt)
@@ -41,8 +58,8 @@ def procesar_con_gemini():
                 ''', (data['titular_es'], data['resumen_es'], data['score'], data['razon'], id_noticia))
                 conn.commit()
 
-                print(f"✅ [{id_noticia}] {data['titular_es']}")
-                time.sleep(20) # Margen de seguridad alto (3 RPM)
+                print(f"✅ [{fila['categoria']}] {data['titular_es']}")
+                time.sleep(20) # Seguridad 3 RPM
 
             except Exception as e:
                 if "429" in str(e):
@@ -52,11 +69,9 @@ def procesar_con_gemini():
     return True
 
 if __name__ == "__main__":
-    print("🚀 Procesador de IA en segundo plano iniciado...")
+    print("🚀 Procesador Multi-Temático iniciado...")
     while True:
         hubo_trabajo = procesar_con_gemini()
         if not hubo_trabajo:
-            print("☕ Todo procesado. Reintentando en 10 minutos...")
+            print("☕ Sin noticias nuevas. Reintentando en 10 minutos...")
             time.sleep(600)
-        else:
-            print("📦 Lote terminado. Continuando con el siguiente...")

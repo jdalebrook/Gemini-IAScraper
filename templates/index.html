@@ -17,7 +17,17 @@
         <span class="navbar-brand">🤖 IA News Desk</span>
     </div>
 </nav>
-
+<div class="container mb-4">
+    <div class="nav nav-pills justify-content-center">
+        <a class="nav-link {% if not cat_activa %}active{% endif %}" href="/">Todas</a>
+        {% for cat in categorias %}
+        <a class="nav-link {% if cat_activa == cat['categoria'] %}active{% endif %}"
+           href="/?cat={{ cat['categoria'] }}">
+            {{ cat['categoria']|capitalize }}
+        </a>
+        {% endfor %}
+    </div>
+</div>
 <div class="container">
     <div class="row">
         {% for noticia in noticias %}
