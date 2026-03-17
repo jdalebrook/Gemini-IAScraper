@@ -68,7 +68,7 @@ def procesar_con_gemini():
                 error_str = str(e)
                 if "429" in error_str:
                     print(f"🛑 Límite de cuota alcanzado. Esperando 60 segundos para resetear...")
-                    time.sleep(60)
+                    time.sleep(300)
                     # Opcional: podrías re-intentar la misma noticia aquí,
                     # pero por simplicidad el script pasará a la siguiente en el próximo ciclo.
                 elif "404" in error_str:
