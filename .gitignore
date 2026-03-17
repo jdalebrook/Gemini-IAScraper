@@ -1,0 +1,10 @@
+# Secretos y configuración personal
+.env
+
+# Base de datos (No la subas, cada PC debe generar la suya o descargarla aparte)
+*.db
+
+# Entorno virtual y temporales
+venv/
+__pycache__/
+log_history/
