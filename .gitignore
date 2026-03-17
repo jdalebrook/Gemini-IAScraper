@@ -8,3 +8,13 @@
 venv/
 __pycache__/
 log_history/
+
+# Configuración del editor (PyCharm)
+.idea/
+
+# Configuración de VS Code (opcional si lo usas)
+.vscode/
+
+# Archivos temporales del sistema
+.DS_Store
+Thumbs.db

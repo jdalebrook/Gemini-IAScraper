@@ -1,0 +1,9 @@
+{
+  "NASA_Breaking_News": "https://www.nasa.gov/news-release/feed/",
+  "ESA_Space_Science": "https://www.esa.int/rssfeed/Our_Activities/Space_Science",
+  "Sky_and_Telescope": "https://skyandtelescope.org/astronomy-news/feed/",
+  "Universe_Today": "https://www.universetoday.com/feed/",
+  "SpaceDaily": "https://www.spacedaily.com/reports/space-news.xml",
+  "JPL_News": "https://www.jpl.nasa.gov/news/news.xml",
+  "Astronomy_Magazine": "https://www.astronomy.com/feed/"
+}

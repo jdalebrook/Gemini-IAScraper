@@ -1,31 +1,43 @@
 import sqlite3
-import os
-from dotenv import load_dotenv
 
-load_dotenv()
-DB_PATH = os.getenv("DB_NAME", "noticias_ia.db")
+def setup_db():
+    conn = sqlite3.connect("noticias_ia.db")
+    cursor = conn.cursor()
 
-def init_db():
-    with sqlite3.connect(DB_PATH) as conn:
-        cursor = conn.cursor()
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS noticias (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                link_hash TEXT UNIQUE,          -- Para evitar duplicados
-                fuente TEXT,
-                titulo_original TEXT,
-                url TEXT,
-                fecha_publicacion TEXT,
-                titular_es TEXT,                -- IA
-                resumen_es TEXT,                -- IA
-                score_fiabilidad INTEGER,       -- IA (1-10)
-                analisis_objetivo TEXT,         -- IA
-                estado TEXT DEFAULT 'nuevo',    -- nuevo, favorito, oculto
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-        conn.commit()
-    print(f"✅ Base de datos lista en: {DB_PATH}")
+    # 1. Crear la tabla si no existe (con todas las columnas)
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS noticias (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            link_hash TEXT UNIQUE,
+            fuente TEXT,
+            categoria TEXT,
+            titulo_original TEXT,
+            url TEXT,
+            fecha_publicacion TEXT,
+            titular_es TEXT,
+            resumen_es TEXT,
+            score_fiabilidad INTEGER,
+            analisis_objetivo TEXT,
+            estado TEXT DEFAULT 'nuevo',
+            etiquetas TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
+    # 2. SEGURO ANTI-ERRORES: Intentar añadir las columnas una a una
+    # por si la tabla ya existía de antes sin ellas.
+    columnas_nuevas = ["categoria", "etiquetas"]
+    for col in columnas_nuevas:
+        try:
+            cursor.execute(f'ALTER TABLE noticias ADD COLUMN {col} TEXT')
+            print(f"✅ Columna '{col}' añadida con éxito.")
+        except sqlite3.OperationalError:
+            # Si entra aquí es porque la columna ya existe, así que no hacemos nada
+            print(f"ℹ️ La columna '{col}' ya estaba presente.")
+
+    conn.commit()
+    conn.close()
+    print("🚀 Base de datos sincronizada y lista.")
 
 if __name__ == "__main__":
-    init_db()
+    setup_db()

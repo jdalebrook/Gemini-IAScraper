@@ -8,7 +8,13 @@
         body { background-color: #f8f9fa; }
         .card { border-radius: 15px; border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .score-badge { font-size: 0.9rem; padding: 5px 10px; border-radius: 20px; }
-        .nav-link.active { font-weight: bold; color: #0d6efd !important; }
+        .nav-link.active { font-weight: bold; color: #fefeff !important; }
+        /* Bordes temáticos para las tarjetas */
+        .card-IA { border-left: 5px solid #0d6efd; }       /* Azul */
+        .card-COSMOS { border-left: 5px solid #6610f2; }   /* Morado */
+        .card-PSICOLOGIA { border-left: 5px solid #198754; } /* Verde */
+        .card-FISICA { border-left: 5px solid #fd7e14; }   /* Naranja */
+        .card-TECNOLOGIA { border-left: 5px solid #6c757d; } /* Gris */
     </style>
 </head>
 <body>
@@ -17,7 +23,18 @@
         <span class="navbar-brand">🤖 IA News Desk</span>
     </div>
 </nav>
+<div class="container mb-4">
+    <div class="nav nav-pills justify-content-center">
 
+        <a class="nav-link {% if not cat_activa %}active{% endif %}" href="/">Todas</a>
+        {% for cat in categorias %}
+        <a class="nav-link {% if cat_activa == cat['categoria'] %}active{% endif %}"
+           href="/?cat={{ cat['categoria'] }}">
+            {{ cat['categoria']|capitalize }}
+        </a>
+        {% endfor %}
+    </div>
+</div>
 <div class="container">
     <div class="row">
         {% for noticia in noticias %}
