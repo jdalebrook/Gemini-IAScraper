@@ -15,12 +15,35 @@
         .card-PSICOLOGIA { border-left: 5px solid #198754; } /* Verde */
         .card-FISICA { border-left: 5px solid #fd7e14; }   /* Naranja */
         .card-TECNOLOGIA { border-left: 5px solid #6c757d; } /* Gris */
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+        .status-dot.running { background: #28a745; animation: pulse 1.5s infinite; }
+        .status-dot.paused  { background: #ffc107; }
+        .status-dot.stopped { background: #6c757d; }
+        .status-dot.cost    { background: #dc3545; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
     </style>
 </head>
 <body>
 <nav class="navbar navbar-dark bg-dark mb-4">
-    <div class="container">
+    <div class="container d-flex justify-content-between align-items-center">
         <span class="navbar-brand">🤖 IA News Desk</span>
+        <div class="d-flex align-items-center gap-3">
+            {% if processor_estado == "running" %}
+                <span class="text-white-50 small"><span class="status-dot running"></span>Procesando</span>
+                <a href="/processor/pause" class="btn btn-sm btn-warning">⏸ Pausar</a>
+            {% elif processor_estado == "paused_cost" %}
+                <span class="text-danger small"><span class="status-dot cost"></span>Auto-pausado (límite de coste)</span>
+                <a href="/processor/resume" class="btn btn-sm btn-success">▶ Reanudar</a>
+            {% elif processor_estado == "paused_limit" %}
+                <span class="text-warning small"><span class="status-dot paused"></span>Auto-pausado (tope diario)</span>
+                <a href="/processor/resume" class="btn btn-sm btn-success">▶ Reanudar</a>
+            {% elif processor_estado == "paused" %}
+                <span class="text-warning small"><span class="status-dot paused"></span>Pausado</span>
+                <a href="/processor/resume" class="btn btn-sm btn-success">▶ Reanudar</a>
+            {% else %}
+                <span class="text-white-50 small"><span class="status-dot stopped"></span>Detenido</span>
+            {% endif %}
+        </div>
     </div>
 </nav>
 <div class="container mb-4">

@@ -1,9 +1,21 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, jsonify
 import sqlite3
 import os
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "data", "noticias_ia.db")
+ESTADO_PATH = os.path.join(BASE_DIR, "data", "processor.state")
+
+def get_processor_estado():
+    try:
+        with open(ESTADO_PATH) as f:
+            return f.read().strip()
+    except FileNotFoundError:
+        return "stopped"
+
+def set_processor_estado(estado):
+    with open(ESTADO_PATH, "w") as f:
+        f.write(estado)
 
 app = Flask(__name__, template_folder='app/templates', static_folder='app/static')
 
@@ -49,7 +61,8 @@ def index():
         noticias=noticias,
         categorias=categorias_rows,
         cat_activa=categoria_filtro,
-        solo_top=solo_top
+        solo_top=solo_top,
+        processor_estado=get_processor_estado()
     )
 
 ESTADOS_VALIDOS = {'nuevo', 'favorito', 'oculto', 'importante', 'archivado'}
@@ -62,6 +75,16 @@ def cambiar_estado(id, estado):
     conn.execute('UPDATE noticias SET estado = ? WHERE id = ?', (estado, id))
     conn.commit()
     conn.close()
+    return redirect(request.referrer or url_for('index'))
+
+@app.route('/processor/pause')
+def processor_pause():
+    set_processor_estado("paused")
+    return redirect(request.referrer or url_for('index'))
+
+@app.route('/processor/resume')
+def processor_resume():
+    set_processor_estado("running")
     return redirect(request.referrer or url_for('index'))
 
 if __name__ == '__main__':
