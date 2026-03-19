@@ -10,6 +10,7 @@ from google.genai import types
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 load_dotenv(os.path.join(PROJECT_ROOT, ".env"))
 DB_PATH = os.path.join(PROJECT_ROOT, "data", "noticias_ia.db")
+ESTADO_PATH = os.path.join(PROJECT_ROOT, "data", "processor.state")
 
 # =========================================================
 # 🎛️ PANEL DE CONTROL (AJUSTE SEGURO)
@@ -19,6 +20,17 @@ LIMITE_DIARIO_FREE = 100   # Máximo de noticias/día en modo gratuito (cuota se
 LIMITE_DIARIO_PAID = 800   # Máximo de noticias/día en modo de pago
 PRECIO_APROX_NOTICIA = 0.00012
 # =========================================================
+
+def get_estado():
+    try:
+        with open(ESTADO_PATH) as f:
+            return f.read().strip()
+    except FileNotFoundError:
+        return "running"
+
+def set_estado(estado):
+    with open(ESTADO_PATH, "w") as f:
+        f.write(estado)
 
 _api_key = os.getenv("GEMINI_API_KEY_PAID") if MODO_PAGO else os.getenv("GEMINI_API_KEY_FREE")
 if not _api_key:
@@ -45,13 +57,15 @@ def procesar_con_gemini():
         PAUSA, LOTE = 2, 20
         tipo_modo = "⚡ MODO PAGO"
         if procesadas_hoy >= LIMITE_DIARIO_PAID:
-            print(f"🛑 LIMITE DIARIO ALCANZADO ({procesadas_hoy}/{LIMITE_DIARIO_PAID})")
+            print(f"🛑 LIMITE DE COSTE ALCANZADO ({procesadas_hoy}/{LIMITE_DIARIO_PAID}) — auto-pausando")
+            set_estado("paused_cost")
             return "STOP"
     else:
         PAUSA, LOTE = 30, 5
         tipo_modo = "🛡️ MODO GRATIS"
         if procesadas_hoy >= LIMITE_DIARIO_FREE:
-            print(f"🛑 TOPE GRATUITO ALCANZADO ({procesadas_hoy}/{LIMITE_DIARIO_FREE}) — espera a mañana")
+            print(f"🛑 TOPE DIARIO ALCANZADO ({procesadas_hoy}/{LIMITE_DIARIO_FREE}) — auto-pausando hasta mañana")
+            set_estado("paused_limit")
             return "STOP"
 
     with sqlite3.connect(DB_PATH) as conn:
@@ -113,8 +127,15 @@ def procesar_con_gemini():
 
 if __name__ == "__main__":
     print(f"--- INICIANDO PROCESADOR ---")
+    set_estado("running")
     while True:
         try:
+            estado = get_estado()
+            if estado in ("paused", "paused_cost", "paused_limit"):
+                print(f"⏸️  Pausado [{estado}]. Comprobando en 60s...")
+                time.sleep(60)
+                continue
+
             res = procesar_con_gemini()
             if res == "STOP":
                 time.sleep(3600)
@@ -123,4 +144,5 @@ if __name__ == "__main__":
                 time.sleep(600)
         except KeyboardInterrupt:
             print("\n👋 Cerrando procesador...")
+            set_estado("stopped")
             break
