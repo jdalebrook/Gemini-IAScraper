@@ -1,18 +1,34 @@
 @echo off
-:: %~dp0 es la ruta de la carpeta donde reside este script
 set PROJECT_DIR=%~dp0
 cd /d "%PROJECT_DIR%"
 
-echo 🚀 Activando Entorno Virtual...
-if exist venv\Scripts\activate (
-    call venv\Scripts\activate
-) else (
-    echo ⚠️ No se encontró la carpeta venv. Asegúrate de haberla creado.
-    pause
-    exit
+:: ── Entorno virtual ────────────────────────────────────────────────────────────
+echo [1/3] Verificando entorno virtual...
+if not exist venv\Scripts\activate (
+    echo     No existe venv. Creando entorno virtual...
+    python -m venv venv
+    if errorlevel 1 (
+        echo ERROR: No se pudo crear el entorno virtual. Asegurate de tener Python instalado.
+        pause
+        exit /b 1
+    )
+    echo     Entorno virtual creado.
 )
+call venv\Scripts\activate
 
-echo 🤖 Lanzando Suite AI News Curator...
+:: ── Dependencias ──────────────────────────────────────────────────────────────
+echo [2/3] Actualizando dependencias...
+python -m pip install --upgrade pip --quiet
+pip install -r requirements.txt --quiet
+if errorlevel 1 (
+    echo ERROR: Fallo al instalar dependencias.
+    pause
+    exit /b 1
+)
+echo     Dependencias OK.
+
+:: ── Arranque ──────────────────────────────────────────────────────────────────
+echo [3/3] Lanzando AI News Curator...
 python run_all.py
 
 pause

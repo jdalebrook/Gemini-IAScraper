@@ -27,7 +27,7 @@ def ejecutar_todo():
     subprocess.Popen([python, "core/ia_processor.py"], env=_env)
 
     print("\n✅ SISTEMA EN MARCHA.")
-    print("La web se actualizará automáticamente según avance Gemini.")
+    print("La web se actualizará automáticamente según avance el procesador de IA.")
 
 if __name__ == "__main__":
     ejecutar_todo()
