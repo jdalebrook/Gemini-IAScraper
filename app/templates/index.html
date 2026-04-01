@@ -1,33 +1,58 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-bs-theme="light">
 <head>
     <meta charset="UTF-8">
     <title>AI News Curator 2026</title>
+    <!-- Aplicar tema antes del render para evitar flash -->
+    <script>
+        (function () {
+            const saved = localStorage.getItem('theme') || 'system';
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const theme = saved === 'system' ? (prefersDark ? 'dark' : 'light') : saved;
+            document.documentElement.setAttribute('data-bs-theme', theme);
+            document.documentElement.dataset.themePref = saved;
+        })();
+    </script>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { background-color: #f8f9fa; }
         .card { border-radius: 15px; border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .score-badge { font-size: 0.9rem; padding: 5px 10px; border-radius: 20px; }
         .nav-link.active { font-weight: bold; color: #fefeff !important; }
         /* Bordes temáticos para las tarjetas */
-        .card-IA { border-left: 5px solid #0d6efd; }       /* Azul */
-        .card-COSMOS { border-left: 5px solid #6610f2; }   /* Morado */
-        .card-PSICOLOGIA { border-left: 5px solid #198754; } /* Verde */
-        .card-FISICA { border-left: 5px solid #fd7e14; }   /* Naranja */
-        .card-TECNOLOGIA { border-left: 5px solid #6c757d; } /* Gris */
+        .card-IA                    { border-left: 5px solid #0d6efd; }
+        .card-COSMOS                { border-left: 5px solid #6610f2; }
+        .card-PSICOLOGIA            { border-left: 5px solid #198754; }
+        .card-FISICA                { border-left: 5px solid #fd7e14; }
+        .card-TECNOLOGIA            { border-left: 5px solid #6c757d; }
+        .card-GCP_CORE              { border-left: 5px solid #4285F4; }
+        .card-CLOUD_ARCHITECTURE    { border-left: 5px solid #00bcd4; }
+        .card-ML_ENGINEERING        { border-left: 5px solid #ab47bc; }
+        .card-MLOPS_AND_DATA        { border-left: 5px solid #ff7043; }
+        .card-KUBERNETES_CLOUD_NATIVE { border-left: 5px solid #326CE5; }
+        .card-SECURITY_CLOUD_AI     { border-left: 5px solid #e53935; }
+        .card-CIBERSEGURIDAD        { border-left: 5px solid #b71c1c; }
+        .card-VULNERABILITIES       { border-left: 5px solid #ff1744; }
+        .card-FRONTEND              { border-left: 5px solid #f06292; }
+        .card-PYTHON                { border-left: 5px solid #fdd835; }
+        .card-AVANCES_TECNOLOGICOS  { border-left: 5px solid #26a69a; }
+        .card-AVANCES_INFORMATICOS  { border-left: 5px solid #42a5f5; }
+        /* Status dot */
         .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 6px; }
         .status-dot.running { background: #28a745; animation: pulse 1.5s infinite; }
         .status-dot.paused  { background: #ffc107; }
         .status-dot.stopped { background: #6c757d; }
         .status-dot.cost    { background: #dc3545; }
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+        /* Theme switcher */
+        .theme-switcher .btn { opacity: 0.55; }
+        .theme-switcher .btn.active { opacity: 1; }
     </style>
 </head>
 <body>
 <nav class="navbar navbar-dark bg-dark mb-4">
-    <div class="container d-flex justify-content-between align-items-center">
+    <div class="container d-flex justify-content-between align-items-center flex-wrap gap-2">
         <span class="navbar-brand">🤖 IA News Desk</span>
-        <div class="d-flex align-items-center gap-3">
+        <div class="d-flex align-items-center gap-3 flex-wrap">
             {% if processor_estado == "running" %}
                 <span class="text-white-50 small"><span class="status-dot running"></span>Procesando</span>
                 <a href="/processor/pause" class="btn btn-sm btn-warning">⏸ Pausar</a>
@@ -43,12 +68,18 @@
             {% else %}
                 <span class="text-white-50 small"><span class="status-dot stopped"></span>Detenido</span>
             {% endif %}
+            <!-- Theme switcher -->
+            <div class="btn-group btn-group-sm theme-switcher" role="group" aria-label="Tema">
+                <button type="button" class="btn btn-outline-light theme-btn" data-theme="light" title="Tema claro">☀️</button>
+                <button type="button" class="btn btn-outline-light theme-btn" data-theme="dark"  title="Tema oscuro">🌙</button>
+                <button type="button" class="btn btn-outline-light theme-btn" data-theme="system" title="Según sistema">💻</button>
+            </div>
         </div>
     </div>
 </nav>
+
 <div class="container mb-4">
     <div class="nav nav-pills justify-content-center">
-
         <a class="nav-link {% if not cat_activa %}active{% endif %}" href="/">Todas</a>
         {% for cat in categorias %}
         <a class="nav-link {% if cat_activa == cat['categoria'] %}active{% endif %}"
@@ -58,27 +89,28 @@
         {% endfor %}
     </div>
 </div>
+
 <div class="container">
     <div class="row">
         {% for noticia in noticias %}
         <div class="col-md-6 col-lg-4 mb-4">
-            <div class="card h-100">
+            <div class="card h-100 card-{{ noticia.categoria }}">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start mb-2">
                         <span class="badge bg-primary">{{ noticia.fuente }}</span>
                         <span class="badge {% if noticia.score_fiabilidad >= 8 %}bg-success{% else %}bg-warning text-dark{% endif %} score-badge">
-                                Fiabilidad: {{ noticia.score_fiabilidad }}/10
-                            </span>
+                            Fiabilidad: {{ noticia.score_fiabilidad }}/10
+                        </span>
                     </div>
                     <h5 class="card-title">{{ noticia.titular_es }}</h5>
                     <p class="card-text text-muted small">{{ noticia.resumen_es }}</p>
-                    <p class="card-text"><small class="text-secondary italic">"{{ noticia.analisis_objetivo }}"</small></p>
+                    <p class="card-text"><small class="text-secondary fst-italic">"{{ noticia.analisis_objetivo }}"</small></p>
                 </div>
-                <div class="card-footer bg-white border-0 d-flex justify-content-between">
+                <div class="card-footer border-0 d-flex justify-content-between">
                     <a href="{{ noticia.url }}" target="_blank" class="btn btn-sm btn-outline-secondary">Leer original</a>
                     <div>
                         <a href="/accion/{{ noticia.id }}/favorito" class="btn btn-sm {% if noticia.estado == 'favorito' %}btn-warning{% else %}btn-outline-warning{% endif %}">⭐</a>
-                        <a href="/accion/{{ noticia.id }}/oculto" class="btn btn-sm btn-outline-danger">✖</a>
+                        <a href="/accion/{{ noticia.id }}/oculto"   class="btn btn-sm btn-outline-danger">✖</a>
                     </div>
                 </div>
             </div>
@@ -86,5 +118,32 @@
         {% endfor %}
     </div>
 </div>
+
+<script>
+    function applyTheme(pref) {
+        localStorage.setItem('theme', pref);
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const theme = pref === 'system' ? (prefersDark ? 'dark' : 'light') : pref;
+        document.documentElement.setAttribute('data-bs-theme', theme);
+        document.documentElement.dataset.themePref = pref;
+        document.querySelectorAll('.theme-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.theme === pref);
+        });
+    }
+
+    // Inicializar botones según preferencia guardada
+    const currentPref = localStorage.getItem('theme') || 'system';
+    document.querySelectorAll('.theme-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.theme === currentPref);
+        btn.addEventListener('click', () => applyTheme(btn.dataset.theme));
+    });
+
+    // Reaccionar a cambios del sistema en tiempo real (cuando está en modo "sistema")
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+        if ((localStorage.getItem('theme') || 'system') === 'system') {
+            applyTheme('system');
+        }
+    });
+</script>
 </body>
 </html>
