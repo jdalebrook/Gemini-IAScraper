@@ -5,6 +5,11 @@
   "ollama_host": "http://localhost:11434",
   "ollama_model": "qwen2.5:14b",
   "ollama_temperature": 0.1,
-  "batch_size": 5,
-  "pause_seconds": 5
+  "batch_size": 3,
+  "pause_seconds": 30,
+  "energy_mode": 75,
+  "schedule_enabled": false,
+  "schedule_start": 2,
+  "schedule_end": 7,
+  "min_pending": 0
 }

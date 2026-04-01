@@ -55,7 +55,7 @@
         #engine-badge { font-size: 0.7rem; letter-spacing: 0.05em; }
 
         /* Offcanvas config */
-        .offcanvas-config { width: 360px !important; }
+        .offcanvas-config { width: 380px !important; }
         .config-section-title {
             font-size: 0.7rem;
             font-weight: 700;
@@ -66,6 +66,45 @@
             margin-bottom: 0.4rem;
         }
         #save-feedback { font-size: 0.8rem; }
+
+        /* Energy slider */
+        #energy_mode {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: linear-gradient(to right, #dc3545 0%, #fd7e14 25%, #ffc107 50%, #20c997 75%, #198754 100%);
+            outline: none;
+            cursor: pointer;
+        }
+        #energy_mode::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 22px; height: 22px;
+            border-radius: 50%;
+            background: white;
+            border: 2px solid #555;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+        }
+        #energy_mode::-moz-range-thumb {
+            width: 22px; height: 22px;
+            border-radius: 50%;
+            background: white;
+            border: 2px solid #555;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+        }
+        .energy-label-row { font-size: 0.75rem; }
+        #energy-mode-name {
+            font-size: 1rem;
+            font-weight: 700;
+            text-align: center;
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+        #schedule-fields { transition: opacity 0.2s; }
+        #schedule-fields.disabled { opacity: 0.4; pointer-events: none; }
     </style>
 </head>
 <body>
@@ -225,8 +264,16 @@
                    min="0" max="1" step="0.05" value="0.1">
         </div>
 
+        <!-- ── Modo energético ── -->
+        <p class="config-section-title">⚡ Modo energético</p>
+        <span id="energy-mode-name">⚖️ Equilibrado</span>
+        <div class="energy-label-row d-flex justify-content-between mb-1 text-muted">
+            <span>⚡ Turbo</span><span>🌙 Eco</span>
+        </div>
+        <input type="range" id="energy_mode" min="0" max="100" step="25" value="50" class="mb-3">
+
         <!-- ── Sección General ── -->
-        <p class="config-section-title">Procesamiento</p>
+        <p class="config-section-title">Procesamiento fino</p>
         <div class="row g-2 mb-4">
             <div class="col-6">
                 <label class="form-label" style="font-size:0.8rem">Noticias por lote</label>
@@ -237,6 +284,32 @@
                 <input type="number" class="form-control form-control-sm" id="pause_seconds" min="0" max="120">
             </div>
         </div>
+
+        <!-- ── Horario ── -->
+        <p class="config-section-title">🕐 Horario de procesamiento</p>
+        <div class="form-check form-switch mb-2">
+            <input class="form-check-input" type="checkbox" id="schedule_enabled">
+            <label class="form-check-label small" for="schedule_enabled">Activar franja horaria</label>
+        </div>
+        <div id="schedule-fields" class="row g-2 mb-1 disabled">
+            <div class="col-6">
+                <label class="form-label" style="font-size:0.8rem">Desde (h)</label>
+                <input type="number" class="form-control form-control-sm" id="schedule_start" min="0" max="23" value="2">
+            </div>
+            <div class="col-6">
+                <label class="form-label" style="font-size:0.8rem">Hasta (h)</label>
+                <input type="number" class="form-control form-control-sm" id="schedule_end" min="0" max="23" value="7">
+            </div>
+        </div>
+        <p class="text-muted mb-3" style="font-size:0.72rem">Procesa solo dentro de esa franja. Admite franjas nocturnas (ej. 22h→06h).</p>
+
+        <!-- ── Umbral mínimo ── -->
+        <p class="config-section-title">📦 Umbral de acumulación</p>
+        <div class="input-group input-group-sm mb-1">
+            <input type="number" class="form-control" id="min_pending" min="0" max="999" value="0">
+            <span class="input-group-text">noticias</span>
+        </div>
+        <p class="text-muted mb-4" style="font-size:0.72rem">0 = desactivado. Solo activa la GPU cuando hay al menos N noticias pendientes.</p>
 
         <button class="btn btn-primary w-100" id="btn-save">💾 Guardar configuración</button>
         <p id="save-feedback" class="text-center mt-2 d-none"></p>
@@ -265,6 +338,33 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () 
 });
 
 // ── Config panel ──────────────────────────────────────────────────────────────
+const ENERGY_PRESETS = {
+    0:   { label: '⚡ Turbo',        batch: 20, pause: 0,  color: '#dc3545' },
+    25:  { label: '🚀 Rápido',       batch: 10, pause: 5,  color: '#fd7e14' },
+    50:  { label: '⚖️ Equilibrado',  batch: 5,  pause: 15, color: '#ffc107' },
+    75:  { label: '🍃 Ahorro',       batch: 3,  pause: 30, color: '#20c997' },
+    100: { label: '🌙 Eco',          batch: 2,  pause: 60, color: '#198754' },
+};
+
+function applyEnergyPreset(value, updateFields = true) {
+    const preset = ENERGY_PRESETS[value] || ENERGY_PRESETS[50];
+    document.getElementById('energy-mode-name').textContent = preset.label;
+    document.getElementById('energy-mode-name').style.color = preset.color;
+    if (updateFields) {
+        document.getElementById('batch_size').value    = preset.batch;
+        document.getElementById('pause_seconds').value = preset.pause;
+    }
+}
+
+document.getElementById('energy_mode').addEventListener('input', function () {
+    applyEnergyPreset(parseInt(this.value));
+});
+
+// Horario toggle
+document.getElementById('schedule_enabled').addEventListener('change', function () {
+    document.getElementById('schedule-fields').classList.toggle('disabled', !this.checked);
+});
+
 let currentConfig = {};
 
 async function loadConfig() {
@@ -295,7 +395,22 @@ function applyConfigToUI(cfg) {
 
     // General
     document.getElementById('batch_size').value    = cfg.batch_size   ?? 5;
-    document.getElementById('pause_seconds').value = cfg.pause_seconds ?? 5;
+    document.getElementById('pause_seconds').value = cfg.pause_seconds ?? 15;
+
+    // Energy
+    const energy = cfg.energy_mode ?? 50;
+    document.getElementById('energy_mode').value = energy;
+    applyEnergyPreset(energy, false);
+
+    // Schedule
+    const schedEnabled = cfg.schedule_enabled ?? false;
+    document.getElementById('schedule_enabled').checked = schedEnabled;
+    document.getElementById('schedule-fields').classList.toggle('disabled', !schedEnabled);
+    document.getElementById('schedule_start').value = cfg.schedule_start ?? 2;
+    document.getElementById('schedule_end').value   = cfg.schedule_end   ?? 7;
+
+    // Min pending
+    document.getElementById('min_pending').value = cfg.min_pending ?? 0;
 }
 
 function toggleEngineSections(engine) {
@@ -351,6 +466,11 @@ document.getElementById('btn-save').addEventListener('click', async () => {
         ollama_temperature:  parseFloat(document.getElementById('ollama_temperature').value),
         batch_size:          parseInt(document.getElementById('batch_size').value),
         pause_seconds:       parseInt(document.getElementById('pause_seconds').value),
+        energy_mode:         parseInt(document.getElementById('energy_mode').value),
+        schedule_enabled:    document.getElementById('schedule_enabled').checked,
+        schedule_start:      parseInt(document.getElementById('schedule_start').value),
+        schedule_end:        parseInt(document.getElementById('schedule_end').value),
+        min_pending:         parseInt(document.getElementById('min_pending').value),
     };
 
     const res  = await fetch('/api/config', {

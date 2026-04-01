@@ -16,7 +16,12 @@ CONFIG_DEFAULTS = {
     "ollama_model": "qwen2.5:14b",
     "ollama_temperature": 0.1,
     "batch_size": 5,
-    "pause_seconds": 5,
+    "pause_seconds": 15,
+    "energy_mode": 50,
+    "schedule_enabled": False,
+    "schedule_start": 2,
+    "schedule_end": 7,
+    "min_pending": 0,
 }
 
 app = Flask(__name__, template_folder="app/templates", static_folder="app/static")
@@ -134,6 +139,16 @@ def api_set_config():
         data["batch_size"] = int(data["batch_size"])
     if "pause_seconds" in data:
         data["pause_seconds"] = int(data["pause_seconds"])
+    if "energy_mode" in data:
+        data["energy_mode"] = int(data["energy_mode"])
+    if "schedule_start" in data:
+        data["schedule_start"] = int(data["schedule_start"])
+    if "schedule_end" in data:
+        data["schedule_end"] = int(data["schedule_end"])
+    if "min_pending" in data:
+        data["min_pending"] = int(data["min_pending"])
+    if "schedule_enabled" in data:
+        data["schedule_enabled"] = bool(data["schedule_enabled"])
     saved = save_config(data)
     return jsonify({"ok": True, "config": saved})
 

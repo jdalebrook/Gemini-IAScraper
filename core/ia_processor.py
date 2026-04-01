@@ -113,11 +113,41 @@ def obtener_stats_hoy(config):
 
 # ── Bucle principal ────────────────────────────────────────────────────────────
 
+def check_schedule(config):
+    """Devuelve True si estamos dentro del horario permitido."""
+    if not config.get("schedule_enabled", False):
+        return True
+    hora   = datetime.now().hour
+    start  = config.get("schedule_start", 2)
+    end    = config.get("schedule_end", 7)
+    if start <= end:
+        return start <= hora < end
+    # Franja nocturna que cruza medianoche (ej. 22h → 06h)
+    return hora >= start or hora < end
+
 def procesar_lote():
     config = get_config()
     engine = config["engine"]
     batch  = config["batch_size"]
     pausa  = config["pause_seconds"]
+
+    # ── Comprobación de horario ────────────────────────────────────────────────
+    if not check_schedule(config):
+        start = config.get("schedule_start", 2)
+        end   = config.get("schedule_end", 7)
+        print(f"🕐 Fuera de horario permitido ({start:02d}h–{end:02d}h). Durmiendo 30 min...")
+        return "SCHEDULE"
+
+    # ── Umbral mínimo de noticias pendientes ───────────────────────────────────
+    min_pending = config.get("min_pending", 0)
+    if min_pending > 0:
+        with sqlite3.connect(DB_PATH) as _conn:
+            pendientes = _conn.execute(
+                "SELECT COUNT(*) FROM noticias WHERE titular_es IS NULL"
+            ).fetchone()[0]
+        if pendientes < min_pending:
+            print(f"📦 Pendientes ({pendientes}) < umbral ({min_pending}). Esperando acumulación...")
+            return False
 
     procesadas_hoy, gasto_hoy, limite_hoy = obtener_stats_hoy(config)
 
@@ -189,6 +219,8 @@ if __name__ == "__main__":
             res = procesar_lote()
             if res == "STOP":
                 time.sleep(3600)
+            elif res == "SCHEDULE":
+                time.sleep(1800)
             elif not res:
                 print("☕ Todo procesado. Esperando 10 min...")
                 time.sleep(600)
