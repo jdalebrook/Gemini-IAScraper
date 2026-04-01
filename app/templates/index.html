@@ -250,13 +250,12 @@
                    id="ollama_host" placeholder="http://localhost:11434">
 
             <p class="config-section-title">Modelo instalado</p>
-            <div class="input-group input-group-sm mb-1">
-                <input type="text" class="form-control" id="ollama_model" placeholder="qwen2.5:14b">
-                <button class="btn btn-outline-secondary" id="btn-refresh-models" title="Detectar modelos instalados">🔄</button>
+            <div class="input-group input-group-sm mb-3">
+                <select class="form-select" id="ollama_model"></select>
+                <button class="btn btn-outline-secondary" id="btn-refresh-models" title="Recargar lista de modelos">🔄</button>
             </div>
-            <select class="form-select form-select-sm mb-3 d-none" id="ollama_model_list"></select>
             <p class="text-muted" style="font-size:0.75rem">
-                Instala modelos con: <code>ollama pull qwen2.5:14b</code>
+                Instala modelos con: <code>ollama pull gemma3:12b</code>
             </p>
 
             <p class="config-section-title">Temperature <span id="temp-val" class="text-primary fw-bold">0.1</span></p>
@@ -371,6 +370,9 @@ async function loadConfig() {
     const res = await fetch('/api/config');
     currentConfig = await res.json();
     applyConfigToUI(currentConfig);
+    if (currentConfig.engine === 'ollama') {
+        loadOllamaModels(currentConfig.ollama_model);
+    }
 }
 
 function applyConfigToUI(cfg) {
@@ -387,8 +389,8 @@ function applyConfigToUI(cfg) {
     }
 
     // Ollama
-    document.getElementById('ollama_host').value   = cfg.ollama_host || 'http://localhost:11434';
-    document.getElementById('ollama_model').value  = cfg.ollama_model || 'qwen2.5:14b';
+    document.getElementById('ollama_host').value = cfg.ollama_host || 'http://localhost:11434';
+    setOllamaModelSelect(cfg.ollama_model || 'qwen2.5:14b');
     const tempSlider = document.getElementById('ollama_temperature');
     tempSlider.value = cfg.ollama_temperature ?? 0.1;
     document.getElementById('temp-val').textContent = parseFloat(tempSlider.value).toFixed(2);
@@ -419,41 +421,52 @@ function toggleEngineSections(engine) {
 }
 
 document.querySelectorAll('input[name="engine"]').forEach(radio =>
-    radio.addEventListener('change', e => toggleEngineSections(e.target.value))
+    radio.addEventListener('change', e => {
+        toggleEngineSections(e.target.value);
+        if (e.target.value === 'ollama') loadOllamaModels();
+    })
 );
 
 document.getElementById('ollama_temperature').addEventListener('input', function () {
     document.getElementById('temp-val').textContent = parseFloat(this.value).toFixed(2);
 });
 
-// Detectar modelos Ollama instalados
-document.getElementById('btn-refresh-models').addEventListener('click', async () => {
+// Popula el select de modelos Ollama; si no hay opciones aún, añade el modelo como fallback
+function setOllamaModelSelect(model) {
+    const select = document.getElementById('ollama_model');
+    if (select.options.length === 0) {
+        select.innerHTML = `<option value="${model}">${model}</option>`;
+    }
+    select.value = model;
+}
+
+async function loadOllamaModels(selectAfter) {
     const btn = document.getElementById('btn-refresh-models');
     btn.textContent = '⏳';
     btn.disabled = true;
     try {
-        const host = document.getElementById('ollama_host').value || 'http://localhost:11434';
         const res  = await fetch('/api/ollama/models');
         const data = await res.json();
-        const select = document.getElementById('ollama_model_list');
+        const select = document.getElementById('ollama_model_list_unused'); // unused placeholder
+        const modelSelect = document.getElementById('ollama_model');
         if (data.ok && data.models.length > 0) {
-            select.innerHTML = data.models.map(m => `<option value="${m}">${m}</option>`).join('');
-            select.classList.remove('d-none');
-            select.addEventListener('change', function () {
-                document.getElementById('ollama_model').value = this.value;
-            });
-            // Seleccionar el modelo actual si está en la lista
-            const current = document.getElementById('ollama_model').value;
-            if (data.models.includes(current)) select.value = current;
+            const current = selectAfter || modelSelect.value;
+            modelSelect.innerHTML = data.models.map(m =>
+                `<option value="${m}"${m === current ? ' selected' : ''}>${m}</option>`
+            ).join('');
         } else {
-            alert('No se encontraron modelos. ¿Está Ollama corriendo?\n' + (data.error || ''));
+            // Mantener la opción actual si no se puede conectar
+            console.warn('Ollama no disponible:', data.error);
         }
     } catch (e) {
-        alert('Error conectando con Ollama: ' + e.message);
+        console.warn('Error conectando con Ollama:', e.message);
     }
     btn.textContent = '🔄';
     btn.disabled = false;
-});
+}
+
+// Botón de refrescar modelos
+document.getElementById('btn-refresh-models').addEventListener('click', () => loadOllamaModels());
 
 // Guardar config
 document.getElementById('btn-save').addEventListener('click', async () => {
