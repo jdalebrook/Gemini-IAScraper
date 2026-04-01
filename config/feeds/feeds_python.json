@@ -1,0 +1,9 @@
+{
+  "Real_Python": "https://realpython.com/atom.xml",
+  "Planet_Python": "https://planetpython.org/rss20.xml",
+  "PyPI_Blog": "https://blog.pypi.org/feed.xml",
+  "Talk_Python": "https://talkpython.fm/episodes/rss",
+  "Python_Insider": "https://blog.python.org/feeds/posts/default",
+  "DevTo_Python": "https://dev.to/feed/tag/python",
+  "Towards_DataScience": "https://towardsdatascience.com/feed"
+}

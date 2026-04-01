@@ -1,0 +1,9 @@
+{
+  "ACM_News": "https://cacm.acm.org/feed/",
+  "IEEE_Computer": "https://www.computer.org/publications/tech-news/feed",
+  "Google_Research": "https://research.google/blog/rss/",
+  "Hacker_News": "https://news.ycombinator.com/rss",
+  "ArXiv_CS": "https://arxiv.org/rss/cs.AI",
+  "Two_Minute_Papers": "https://www.youtube.com/feeds/videos.xml?channel_id=UCbfYPyITQ-7l4upoX8nvctg",
+  "Morning_Paper": "https://blog.acolyer.org/feed/"
+}

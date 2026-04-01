@@ -1,0 +1,9 @@
+{
+  "Google_Data_Analytics": "https://cloud.google.com/blog/topics/data-analytics/rss/",
+  "Databricks_Blog": "https://www.databricks.com/blog/rss.xml",
+  "TowardsDataScience": "https://towardsdatascience.com/feed",
+  "Netflix_Data": "https://netflixtechblog.com/feed",
+  "dbt_Blog": "https://blog.getdbt.com/rss/",
+  "Astronomer": "https://www.astronomer.io/blog/feed/",
+  "DataEngineeringWeekly": "https://www.dataengineeringweekly.com/feed"
+}

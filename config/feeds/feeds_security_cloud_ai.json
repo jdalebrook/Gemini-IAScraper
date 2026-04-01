@@ -1,0 +1,10 @@
+{
+  "Google_Security_Blog": "https://security.googleblog.com/feeds/posts/default",
+  "Google_Threat_Intel": "https://cloud.google.com/blog/topics/threat-intelligence/rss/",
+  "CISA": "https://www.cisa.gov/news.xml",
+  "NIST": "https://www.nist.gov/news-events/news/rss.xml",
+  "Krebs_Security": "https://krebsonsecurity.com/feed/",
+  "Schneier": "https://www.schneier.com/feed/atom/",
+  "The_Hacker_News": "https://feeds.feedburner.com/TheHackersNews",
+  "Dark_Reading": "https://www.darkreading.com/rss.xml"
+}

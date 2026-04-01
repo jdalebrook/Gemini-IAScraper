@@ -1,0 +1,10 @@
+{
+  "CSS_Tricks": "https://css-tricks.com/feed/",
+  "Smashing_Magazine": "https://www.smashingmagazine.com/feed/",
+  "web_dev": "https://web.dev/feed.xml",
+  "MDN_Blog": "https://developer.mozilla.org/en-US/blog/rss.xml",
+  "React_Blog": "https://react.dev/rss.xml",
+  "Vue_Blog": "https://blog.vuejs.org/feed.rss",
+  "Angular_Blog": "https://blog.angular.io/feed",
+  "DevTo_Frontend": "https://dev.to/feed/tag/frontend"
+}

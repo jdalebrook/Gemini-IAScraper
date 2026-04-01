@@ -1,0 +1,14 @@
+{
+  "AWS_Architecture_Blog": "https://aws.amazon.com/blogs/architecture/feed/",
+  "AWS_Blog": "https://aws.amazon.com/blogs/aws/feed/",
+  "AWS_Security": "https://aws.amazon.com/blogs/security/feed/",
+  "Azure_Architecture": "https://azure.microsoft.com/en-us/blog/feed/",
+  "Microsoft_Tech": "https://techcommunity.microsoft.com/plugins/custom/microsoft/o365blog/rss.aspx",
+  "Microsoft_Security": "https://www.microsoft.com/en-us/security/blog/feed/",
+  "InfoQ_Architecture": "https://www.infoq.com/architecture-design/rss/",
+  "HighScalability": "http://feeds.feedburner.com/HighScalability",
+  "Cloudflare_Blog": "https://blog.cloudflare.com/rss/",
+  "Uber_Engineering": "https://eng.uber.com/feed/",
+  "Martin_Fowler": "https://martinfowler.com/feed.atom",
+  "HashiCorp": "https://www.hashicorp.com/blog/feed.xml"
+}

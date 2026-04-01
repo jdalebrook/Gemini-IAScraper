@@ -1,0 +1,10 @@
+{
+  "Kubernetes_CVE": "https://kubernetes.io/feed.xml",
+  "NVD": "https://nvd.nist.gov/feeds/xml/cve/misc/nvd-rss.xml",
+  "Exploit_DB": "https://www.exploit-db.com/rss.xml",
+  "SANS_ISC": "https://isc.sans.edu/rssfeed_full.xml",
+  "Vulners": "https://vulners.com/rss.xml",
+  "PacketStorm": "https://rss.packetstormsecurity.com/",
+  "FullDisclosure": "https://seclists.org/rss/fulldisclosure.rss",
+  "Rapid7_Vulns": "https://www.rapid7.com/blog/tag/vulnerability/rss.xml"
+}

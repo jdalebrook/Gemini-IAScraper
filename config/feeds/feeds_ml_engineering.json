@@ -1,0 +1,9 @@
+{
+  "HuggingFace": "https://huggingface.co/blog/feed.xml",
+  "Google_AI_Research": "https://blog.google/technology/ai/rss/",
+  "DeepMind": "https://deepmind.google/blog/rss.xml",
+  "OpenAI": "https://openai.com/news/rss.xml",
+  "Meta_AI": "https://ai.facebook.com/blog/feed/",
+  "Apple_ML": "https://machinelearning.apple.com/rss.xml",
+  "Weights_Biases": "https://wandb.ai/fully-connected/feed"
+}

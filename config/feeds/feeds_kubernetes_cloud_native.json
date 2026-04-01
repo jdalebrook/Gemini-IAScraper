@@ -1,0 +1,8 @@
+{
+  "Kubernetes_Blog": "https://kubernetes.io/feed.xml",
+  "CNCF": "https://www.cncf.io/feed/",
+  "Docker_Blog": "https://www.docker.com/blog/feed/",
+  "Helm_Blog": "https://helm.sh/blog/index.xml",
+  "Istio_Blog": "https://istio.io/latest/news/index.xml",
+  "RedHat_OpenShift": "https://www.redhat.com/en/rss/blog"
+}

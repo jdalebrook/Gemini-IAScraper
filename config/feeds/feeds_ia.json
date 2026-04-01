@@ -9,5 +9,9 @@
   "AI_Pansophy": "https://aipansophy.com/feed/",
   "MarkTechPost": "https://www.marktechpost.com/feed/",
   "Stability_AI": "https://stability.ai/news?format=rss",
-  "HugginFace_Blog": "https://huggingface.co/blog/feed.xml"
+  "HuggingFace_Blog": "https://huggingface.co/blog/feed.xml",
+  "Anthropic_Blog": "https://www.anthropic.com/rss.xml",
+  "TowardsAI": "https://towardsai.net/feed",
+  "AI_News": "https://www.artificialintelligence-news.com/feed/",
+  "ImportAI": "https://jack-clark.net/feed/"
 }
