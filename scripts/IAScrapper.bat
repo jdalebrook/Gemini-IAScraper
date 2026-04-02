@@ -1,5 +1,6 @@
 @echo off
-set PROJECT_DIR=%~dp0
+set SCRIPT_DIR=%~dp0
+set PROJECT_DIR=%SCRIPT_DIR%..
 cd /d "%PROJECT_DIR%"
 
 :: ── Entorno virtual ────────────────────────────────────────────────────────────
