@@ -47,6 +47,12 @@ Gemini-IAScraper/
 │   ├── processor_config.json # Configuración del procesador
 │   └── feeds/                # 17 archivos JSON con URLs de RSS por categoría
 │
+├── scripts/
+│   ├── check_results.py      # Verifica resultados del procesamiento
+│   ├── debug_models.py       # Debug de modelos disponibles
+│   ├── lista_modelos.py      # Lista modelos Ollama detectados
+│   └── IAScrapper.bat        # Lanzador Windows
+│
 └── data/
     ├── noticias_ia.db        # Base de datos SQLite
     └── processor.state       # Estado del procesador (IPC entre procesos)
