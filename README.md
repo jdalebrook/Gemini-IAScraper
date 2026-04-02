@@ -1,63 +1,126 @@
-# 🤖 AI News Curator 2026
-Un sistema inteligente de curación de noticias sobre Inteligencia Artificial para blogs y redes sociales. Utiliza Gemini Flash (Latest) para filtrar ruido, traducir y puntuar la veracidad de la información de forma eficiente.
+# Skully News — AI News Curator
 
-# ✨ Características principales
-* ** 🌐 Multi-fuente RSS: Recolecta noticias de OpenAI, MIT, VentureBeat y más.
+Un sistema inteligente de curación y procesamiento de noticias técnicas con soporte para motores de IA locales y en la nube. Recolecta artículos de RSS, los traduce al español, genera resúmenes ejecutivos y los puntúa por fiabilidad.
 
-* ** 🧠 Inteligencia Gemini: Traducción automática al español y resúmenes ejecutivos usando la SDK de última generación (google-genai).
+---
 
-* ** 🛡️ Filtro de Anti-Fake News: Sistema de puntuación (1-10) basado en calidad técnica y objetividad.
+## Características principales
 
-* ** 🗄️ Control de Duplicados: Base de datos SQLite con hashing para evitar procesar la misma noticia dos veces.
+- **Multi-fuente RSS** — 17 categorías de feeds: IA, ML Engineering, MLOps, GCP, Cloud Architecture, Kubernetes, Seguridad, Ciberseguridad, Vulnerabilidades, Frontend, Python, Avances Tecnológicos, Avances Informáticos, Tecnología, Cosmos, Física y Psicología.
+- **Doble motor de IA** — Soporte nativo para **Google Gemini** (free/paid tier) y **Ollama** (modelos locales como `qwen2.5:14b`). Seleccionable en tiempo real desde la UI.
+- **Traducción y resumen automático** — Cada artículo se traduce al español y recibe un resumen ejecutivo generado por IA.
+- **Anti-fake news** — Puntuación de fiabilidad 1–10 basada en calidad técnica y objetividad de la fuente.
+- **Deduplicación** — SQLite con hashing MD5 para evitar procesar el mismo artículo dos veces.
+- **Control de energía** — Slider de modo energético (0–100) que regula la velocidad de procesamiento para ajustar el consumo de CPU y cuota de API.
+- **Procesamiento programado** — Ventana horaria configurable para ejecutar el procesador solo en horas definidas (ej. 02:00–07:00).
+- **Dark mode** — Alternancia entre tema claro, oscuro y sistema desde la barra de navegación.
+- **Panel de control web** — Dashboard Bootstrap 5 con filtros por categoría, marcado de favoritos/importantes, archivado y ocultado de noticias.
+- **Configuración en vivo** — Offcanvas de configuración que persiste cambios sin reiniciar el proceso.
+- **Estado del procesador** — Indicador visual (running/paused/stopped) y control de pausa/reanudación desde la UI.
 
-* ** 💻 Panel de Control Web: Interfaz Flask para gestionar favoritos u ocultar noticias.
+---
 
-# 🚀 Instalación rápida
-Clonar el repositorio:
+## Estructura del proyecto
+
+```
+Gemini-IAScraper/
+├── app.py                    # Servidor Flask (entry point web)
+├── run_all.py                # Orquestador principal
+├── requirements.txt
+├── .env                      # API keys (no incluido en git)
+├── .env.example
+│
+├── app/
+│   ├── templates/
+│   │   └── index.html        # Dashboard web (Bootstrap 5)
+│   └── static/
+│       ├── icon.ico
+│       └── icon128.png
+│
+├── core/
+│   ├── database.py           # Inicialización y migración de SQLite
+│   ├── scraper.py            # Recolector de feeds RSS
+│   ├── ia_processor.py       # Motor de IA (Gemini / Ollama)
+│   └── actions.py            # Lógica de negocio
+│
+├── config/
+│   ├── processor_config.json # Configuración del procesador
+│   └── feeds/                # 17 archivos JSON con URLs de RSS por categoría
+│
+└── data/
+    ├── noticias_ia.db        # Base de datos SQLite
+    └── processor.state       # Estado del procesador (IPC entre procesos)
+```
+
+---
+
+## Instalación
+
+### Requisitos
+- Python 3.10+
+- (Opcional) [Ollama](https://ollama.com) instalado y corriendo localmente
+
+### Pasos
+
+```bash
+# 1. Clonar el repositorio
 git clone https://github.com/tu-usuario/Gemini-IAScraper.git
 cd Gemini-IAScraper
 
-# Crear entorno virtual e instalar dependencias:
-```bash
+# 2. Crear entorno virtual e instalar dependencias
 python -m venv venv
-venv\Scripts\activate
-pip install google-genai feedparser python-dotenv flask
-```
-# Configurar variables de entorno:
-Crea un archivo .env en la raíz con:
-GEMINI_API_KEY=tu_clave_de_google_ai_studio
+venv\Scripts\activate      # Windows
+# source venv/bin/activate  # Linux/macOS
+pip install -r requirements.txt
 
-# Ejecutar el sistema:
-```bash
+# 3. Configurar variables de entorno
+cp .env.example .env
+# Editar .env y añadir tus claves:
+# GEMINI_API_KEY_FREE=tu_clave_ai_studio
+# GEMINI_API_KEY_PAID=tu_clave_google_cloud
+
+# 4. Ejecutar
 python run_all.py
 ```
-# 🛠️ Estructura de Archivos
-scraper.py: Recolector de feeds RSS optimizado (50 noticias por categoría).
 
-ia_processor.py: El cerebro que utiliza gemini-flash-latest con modo ahorro/pago.
+El sistema abrirá automáticamente `http://127.0.0.1:5000` en el navegador.
 
-app.py: Servidor Flask para la interfaz visual.
+---
 
-database.py: Gestión y estructura de la base de datos SQL.
+## Configuración del procesador
 
-# Creado con ❤️ y Gemini Flash.
+El archivo `config/processor_config.json` controla el comportamiento del motor:
 
-# 🚀 Último paso: El archivo run_all.py
-Para que la instrucción python run_all.py del README funcione perfecta, asegúrate de que tu archivo run_all.py tenga este orden lógico:
+| Campo | Descripción |
+|---|---|
+| `engine` | `"gemini"` o `"ollama"` |
+| `gemini_mode` | `"free"` (límite ~100/día) o `"paid"` (~800/día) |
+| `gemini_model` | Modelo Gemini a usar (ej. `gemini-2.5-flash-lite`) |
+| `ollama_host` | URL del servidor Ollama |
+| `ollama_model` | Modelo local (ej. `qwen2.5:14b`) |
+| `ollama_temperature` | Temperatura de generación (0.0–1.0) |
+| `batch_size` | Artículos procesados por lote |
+| `pause_seconds` | Pausa entre lotes |
+| `energy_mode` | Velocidad de procesamiento (0=mínimo, 100=máximo) |
+| `schedule_enabled` | Activar ventana horaria programada |
+| `schedule_start` / `schedule_end` | Horas de inicio y fin del procesamiento |
 
-Python
-import subprocess
-import time
+Todos los campos son editables desde el panel web sin necesidad de reiniciar.
 
-def ejecutar_sistema():
-print("📡 1. Iniciando recolección de noticias (Scraper)...")
-subprocess.run(["python", "scraper.py"])
+---
 
-    print("\n🤖 2. Procesando noticias con IA (Gemini)...")
-    # Esto lanza el procesador. Se detendrá según tu configuración de MODO_PAGO
-    subprocess.run(["python", "ia_processor.py"])
+## Motores de IA soportados
 
-if __name__ == "__main__":
-ejecutar_sistema()
+### Google Gemini (nube)
+Requiere `GEMINI_API_KEY_FREE` o `GEMINI_API_KEY_PAID` en `.env`. Compatible con cualquier modelo `gemini-*` disponible en AI Studio / Google Cloud.
 
+### Ollama (local)
+No requiere API key. Instala Ollama y descarga un modelo:
+```bash
+ollama pull qwen2.5:14b
+```
+El sistema detecta automáticamente los modelos disponibles y los lista en la UI.
 
+---
+
+Creado con Python, Flask y Gemini / Ollama.
