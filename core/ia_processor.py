@@ -59,7 +59,25 @@ PROMPT_TEMPLATE = (
     "No añadas texto fuera del JSON."
 )
 
-def llamar_gemini(titulo, config):
+PROMPT_VULN = (
+    "Analiza esta vulnerabilidad de seguridad: \"{titulo}\". "
+    "Responde ÚNICAMENTE con un objeto JSON válido con estas claves: "
+    "titular_es (traducción profesional al español; si es un CVE incluye el nombre del software afectado), "
+    "resumen_es (una frase concisa que indique: SOFTWARE afectado y versiones si se conocen, tipo de vulnerabilidad y consecuencia principal; "
+    "ejemplo: 'Apache Struts 2.x — RCE sin autenticación vía deserialización'), "
+    "score (entero del 1 al 10, siendo 10 vulnerabilidad crítica confirmada con exploit público y 1 información no verificada), "
+    "razon (severidad estimada, CVSS si aparece, y si existe exploit conocido). "
+    "No añadas texto fuera del JSON."
+)
+
+CATEGORIAS_VULN = {"VULNERABILITIES", "CIBERSEGURIDAD", "SECURITY_CLOUD_AI"}
+
+def _seleccionar_prompt(categoria):
+    if categoria and categoria.upper() in CATEGORIAS_VULN:
+        return PROMPT_VULN
+    return PROMPT_TEMPLATE
+
+def llamar_gemini(titulo, config, categoria=None):
     from google import genai
     from google.genai import types
 
@@ -68,29 +86,51 @@ def llamar_gemini(titulo, config):
     if not api_key:
         raise ValueError("Falta GEMINI_API_KEY en el .env")
 
+    prompt = _seleccionar_prompt(categoria).format(titulo=titulo)
     client = genai.Client(api_key=api_key)
     response = client.models.generate_content(
         model=config["gemini_model"],
-        contents=PROMPT_TEMPLATE.format(titulo=titulo),
+        contents=prompt,
         config=types.GenerateContentConfig(response_mime_type="application/json"),
     )
     return json.loads(response.text)
 
-def llamar_ollama(titulo, config):
+def llamar_ollama(titulo, config, categoria=None):
     import ollama
+    import re
 
-    response = ollama.chat(
-        model=config["ollama_model"],
-        messages=[{"role": "user", "content": PROMPT_TEMPLATE.format(titulo=titulo)}],
-        format="json",
-        options={"temperature": config["ollama_temperature"]},
-    )
-    return json.loads(response.message.content)
+    prompt = _seleccionar_prompt(categoria).format(titulo=titulo)
+    ultimo_error = None
+    for intento in range(1, 3):
+        response = ollama.chat(
+            model=config["ollama_model"],
+            messages=[{"role": "user", "content": prompt}],
+            options={"temperature": config["ollama_temperature"]},
+        )
+        content = response.message.content
+        if not content or not content.strip():
+            ultimo_error = ValueError("Respuesta vacía del modelo")
+            time.sleep(2)
+            continue
+        try:
+            return json.loads(content)
+        except json.JSONDecodeError:
+            # Intentar extraer bloque JSON del texto
+            match = re.search(r'\{.*\}', content, re.DOTALL)
+            if match:
+                try:
+                    return json.loads(match.group())
+                except json.JSONDecodeError as e:
+                    ultimo_error = e
+            else:
+                ultimo_error = ValueError(f"No se encontró JSON en la respuesta: {content[:100]!r}")
+            time.sleep(2)
+    raise ultimo_error
 
-def llamar_llm(titulo, config):
+def llamar_llm(titulo, config, categoria=None):
     if config["engine"] == "ollama":
-        return llamar_ollama(titulo, config)
-    return llamar_gemini(titulo, config)
+        return llamar_ollama(titulo, config, categoria)
+    return llamar_gemini(titulo, config, categoria)
 
 # ── Stats ──────────────────────────────────────────────────────────────────────
 
@@ -176,7 +216,7 @@ def procesar_lote():
 
         for fila in filas:
             try:
-                data = llamar_llm(fila["titulo_original"], config)
+                data = llamar_llm(fila["titulo_original"], config, fila["categoria"])
 
                 cursor.execute(
                     """UPDATE noticias SET
@@ -198,9 +238,10 @@ def procesar_lote():
                 if "429" in str(e):
                     print("🛑 Cuota agotada temporalmente. Esperando 60s...")
                     time.sleep(60)
+                    break
                 else:
                     print(f"⚠️  Error en noticia {fila['id']}: {e}")
-                break
+                    continue
 
     return True
 

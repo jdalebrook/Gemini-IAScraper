@@ -3,7 +3,7 @@
   "gemini_mode": "free",
   "gemini_model": "gemini-2.5-flash-lite",
   "ollama_host": "http://localhost:11434",
-  "ollama_model": "qwen2.5:14b",
+  "ollama_model": "gemma4:latest",
   "ollama_temperature": 0.1,
   "batch_size": 2,
   "pause_seconds": 60,

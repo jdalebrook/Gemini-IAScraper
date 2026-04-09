@@ -105,6 +105,68 @@
         }
         #schedule-fields { transition: opacity 0.2s; }
         #schedule-fields.disabled { opacity: 0.4; pointer-events: none; }
+
+        /* ── Feeds panel ─────────────────────────────── */
+        .offcanvas-feeds { width: 420px !important; }
+
+        .feed-cat-header {
+            cursor: pointer;
+            user-select: none;
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+        .feed-cat-header:hover { background: rgba(128,128,128,0.07); }
+
+        .feed-source-row {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.4rem 0.75rem 0.4rem 1.25rem;
+            border-bottom: 1px solid rgba(128,128,128,0.08);
+            font-size: 0.82rem;
+        }
+        .feed-source-row:hover { background: rgba(128,128,128,0.05); }
+
+        .weight-badge {
+            font-size: 0.68rem;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 10px;
+            min-width: 26px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+        .btn-icon {
+            background: none;
+            border: none;
+            padding: 2px 5px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            opacity: 0.55;
+            border-radius: 4px;
+            flex-shrink: 0;
+        }
+        .btn-icon:hover { opacity: 1; background: rgba(128,128,128,0.12); }
+
+        /* Weight slider in modal */
+        #fm-weight {
+            -webkit-appearance: none; appearance: none;
+            width: 100%; height: 7px; border-radius: 4px;
+            background: linear-gradient(to right, #adb5bd 0%, #0d6efd 45%, #198754 100%);
+            outline: none; cursor: pointer;
+        }
+        #fm-weight::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 20px; height: 20px;
+            border-radius: 50%; background: white; border: 2px solid #555;
+            cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+        }
+        #fm-weight::-moz-range-thumb {
+            width: 20px; height: 20px; border-radius: 50%;
+            background: white; border: 2px solid #555;
+            cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+        }
     </style>
 </head>
 <body>
@@ -153,6 +215,12 @@
                 <button type="button" class="btn btn-outline-light theme-btn" data-theme="dark"   title="Tema oscuro">🌙</button>
                 <button type="button" class="btn btn-outline-light theme-btn" data-theme="system" title="Según sistema">💻</button>
             </div>
+
+            <!-- Botón feeds -->
+            <button class="btn btn-sm btn-outline-light" type="button"
+                    data-bs-toggle="offcanvas" data-bs-target="#feedsPanel">
+                📡 Feeds
+            </button>
 
             <!-- Botón configuración -->
             <button class="btn btn-sm btn-outline-light" type="button"
@@ -210,6 +278,93 @@
             </div>
         </div>
         {% endfor %}
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ PANEL FEEDS (offcanvas izquierdo) -->
+<div class="offcanvas offcanvas-start offcanvas-feeds" tabindex="-1" id="feedsPanel">
+    <div class="offcanvas-header border-bottom">
+        <h5 class="offcanvas-title">📡 Gestión de Feeds</h5>
+        <div class="d-flex align-items-center gap-2">
+            <button class="btn btn-sm btn-outline-success" id="btn-new-category">＋ Categoría</button>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+        </div>
+    </div>
+    <div class="offcanvas-body p-0" id="feeds-panel-body">
+        <div class="d-flex justify-content-center py-5">
+            <div class="spinner-border text-secondary" role="status"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ MODAL FEED (añadir / editar) -->
+<div class="modal fade" id="feedModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="feedModal-title">Añadir feed</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="fm-old-category">
+                <input type="hidden" id="fm-old-name">
+
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Categoría</label>
+                    <select class="form-select form-select-sm" id="fm-category"></select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Nombre de la fuente</label>
+                    <input type="text" class="form-control form-control-sm" id="fm-name" placeholder="Ej: OpenAI">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">URL del feed RSS</label>
+                    <input type="url" class="form-control form-control-sm" id="fm-url" placeholder="https://...">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">
+                        Relevancia &nbsp;
+                        <span id="fm-weight-val" class="fw-bold" style="font-size:1rem">5</span>
+                        <span class="text-muted">/10</span>
+                    </label>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="text-muted small">Baja</span>
+                        <input type="range" class="flex-grow-1" id="fm-weight" min="1" max="10" step="1" value="5">
+                        <span class="text-muted small">Alta</span>
+                    </div>
+                    <p id="fm-weight-desc" class="text-muted mb-0 mt-1" style="font-size:0.75rem"></p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <p id="fm-error" class="text-danger small me-auto mb-0 d-none"></p>
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary btn-sm" id="btn-fm-save">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ MODAL CATEGORÍA (nueva / renombrar) -->
+<div class="modal fade" id="catModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="catModal-title">Categoría</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="cm-old-name">
+                <label class="form-label small fw-bold">Nombre</label>
+                <input type="text" class="form-control form-control-sm" id="cm-name"
+                       placeholder="mi_categoria">
+                <div class="form-text">Solo letras, números y guiones bajos.</div>
+            </div>
+            <div class="modal-footer">
+                <p id="cm-error" class="text-danger small me-auto mb-0 d-none"></p>
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary btn-sm" id="btn-cm-save">Guardar</button>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -524,6 +679,239 @@ document.getElementById('btn-save').addEventListener('click', async () => {
 
 // Cargar config al abrir el panel
 document.getElementById('configPanel').addEventListener('show.bs.offcanvas', loadConfig);
+
+// ── Feeds Panel ───────────────────────────────────────────────────────────────
+let feedsData = {};
+
+function weightColor(w) {
+    if (w <= 2) return '#adb5bd';
+    if (w <= 4) return '#6c9efd';
+    if (w <= 6) return '#0d6efd';
+    if (w <= 8) return '#20c997';
+    return '#198754';
+}
+
+function weightDesc(w) {
+    if (w <= 2) return 'Relevancia muy baja — pocas noticias por ciclo.';
+    if (w <= 4) return 'Relevancia baja.';
+    if (w <= 6) return 'Relevancia media — comportamiento estándar.';
+    if (w <= 8) return 'Relevancia alta — más artículos por ciclo.';
+    return 'Relevancia máxima — prioridad absoluta.';
+}
+
+function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escJs(s) {
+    return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'\\"');
+}
+
+async function loadFeeds() {
+    document.getElementById('feeds-panel-body').innerHTML =
+        '<div class="d-flex justify-content-center py-5"><div class="spinner-border text-secondary" role="status"></div></div>';
+    const res = await fetch('/api/feeds');
+    feedsData = await res.json();
+    renderFeedsPanel();
+}
+
+function renderFeedsPanel() {
+    const body = document.getElementById('feeds-panel-body');
+    const cats = Object.keys(feedsData).sort();
+    if (cats.length === 0) {
+        body.innerHTML = '<p class="text-muted text-center py-5 small">Sin categorías. Crea una con "+ Categoría".</p>';
+        return;
+    }
+    body.innerHTML = cats.map((cat, idx) => {
+        const sources = feedsData[cat] || {};
+        const names   = Object.keys(sources);
+        const cid     = `cc${idx}`;
+        const srcHtml = names.length === 0
+            ? '<div class="px-4 py-2 text-muted small fst-italic">Sin fuentes todavía.</div>'
+            : names.map(n => {
+                const {url, weight} = sources[n];
+                const wc = weightColor(weight);
+                return `<div class="feed-source-row">
+                    <div class="flex-grow-1 overflow-hidden">
+                        <div class="fw-semibold text-truncate">${escHtml(n)}</div>
+                        <div class="text-muted text-truncate" style="font-size:0.7rem">${escHtml(url)}</div>
+                    </div>
+                    <span class="weight-badge" style="background:${wc};color:#fff">${weight}</span>
+                    <button class="btn-icon" onclick="openEditFeed('${escJs(cat)}','${escJs(n)}')" title="Editar">✏️</button>
+                    <button class="btn-icon" onclick="deleteFeed('${escJs(cat)}','${escJs(n)}')" title="Eliminar">🗑️</button>
+                </div>`;
+            }).join('');
+        return `<div class="border-bottom">
+            <div class="feed-cat-header d-flex align-items-center gap-2 px-3 py-2"
+                 data-bs-toggle="collapse" data-bs-target="#${cid}">
+                <span class="flex-grow-1">${escHtml(cat)}</span>
+                <span class="badge bg-secondary rounded-pill fw-normal" style="font-size:0.65rem">${names.length}</span>
+                <button class="btn-icon" onclick="event.stopPropagation();openRenameCategory('${escJs(cat)}')" title="Renombrar">✏️</button>
+                <button class="btn-icon" onclick="event.stopPropagation();deleteCategory('${escJs(cat)}')" title="Eliminar categoría">🗑️</button>
+                <span style="font-size:0.7rem;opacity:0.4">▼</span>
+            </div>
+            <div id="${cid}" class="collapse">
+                ${srcHtml}
+                <div class="px-3 py-2">
+                    <button class="btn btn-sm btn-outline-primary w-100"
+                            onclick="openAddFeed('${escJs(cat)}')">＋ Añadir feed</button>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// ── Feed modal ────────────────────────────────────────────────────────────────
+const feedModal = new bootstrap.Modal(document.getElementById('feedModal'));
+
+function populateCategorySelect(selected) {
+    const sel = document.getElementById('fm-category');
+    sel.innerHTML = Object.keys(feedsData).sort().map(c =>
+        `<option value="${escHtml(c)}"${c === selected ? ' selected':''}>${escHtml(c)}</option>`
+    ).join('');
+}
+
+function openAddFeed(cat) {
+    document.getElementById('feedModal-title').textContent = 'Añadir feed';
+    document.getElementById('fm-old-category').value = '';
+    document.getElementById('fm-old-name').value     = '';
+    document.getElementById('fm-name').value  = '';
+    document.getElementById('fm-url').value   = '';
+    document.getElementById('fm-weight').value = 5;
+    updateWeightUI(5);
+    document.getElementById('fm-error').classList.add('d-none');
+    populateCategorySelect(cat);
+    feedModal.show();
+}
+
+function openEditFeed(cat, name) {
+    const src = feedsData[cat]?.[name];
+    if (!src) return;
+    document.getElementById('feedModal-title').textContent = 'Editar feed';
+    document.getElementById('fm-old-category').value = cat;
+    document.getElementById('fm-old-name').value     = name;
+    document.getElementById('fm-name').value  = name;
+    document.getElementById('fm-url').value   = src.url;
+    document.getElementById('fm-weight').value = src.weight;
+    updateWeightUI(src.weight);
+    document.getElementById('fm-error').classList.add('d-none');
+    populateCategorySelect(cat);
+    feedModal.show();
+}
+
+function updateWeightUI(w) {
+    const valEl  = document.getElementById('fm-weight-val');
+    const descEl = document.getElementById('fm-weight-desc');
+    valEl.textContent  = w;
+    valEl.style.color  = weightColor(w);
+    descEl.textContent = weightDesc(w);
+}
+
+document.getElementById('fm-weight').addEventListener('input', function () {
+    updateWeightUI(parseInt(this.value));
+});
+
+document.getElementById('btn-fm-save').addEventListener('click', async () => {
+    const oldCat  = document.getElementById('fm-old-category').value;
+    const oldName = document.getElementById('fm-old-name').value;
+    const category = document.getElementById('fm-category').value.trim();
+    const name     = document.getElementById('fm-name').value.trim();
+    const url      = document.getElementById('fm-url').value.trim();
+    const weight   = parseInt(document.getElementById('fm-weight').value);
+    const errEl    = document.getElementById('fm-error');
+
+    if (!category || !name || !url) {
+        errEl.textContent = 'Rellena todos los campos.';
+        errEl.classList.remove('d-none');
+        return;
+    }
+    const isEdit = !!oldName;
+    const body   = isEdit
+        ? {old_category: oldCat, old_name: oldName, category, name, url, weight}
+        : {category, name, url, weight};
+    const res  = await fetch('/api/feeds/source', {
+        method:  isEdit ? 'PUT' : 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body:    JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (data.ok) { feedModal.hide(); await loadFeeds(); }
+    else { errEl.textContent = data.error || 'Error al guardar.'; errEl.classList.remove('d-none'); }
+});
+
+// ── Category modal ────────────────────────────────────────────────────────────
+const catModal = new bootstrap.Modal(document.getElementById('catModal'));
+
+document.getElementById('btn-new-category').addEventListener('click', () => {
+    document.getElementById('catModal-title').textContent = 'Nueva categoría';
+    document.getElementById('cm-old-name').value = '';
+    document.getElementById('cm-name').value     = '';
+    document.getElementById('cm-error').classList.add('d-none');
+    catModal.show();
+});
+
+function openRenameCategory(cat) {
+    document.getElementById('catModal-title').textContent = 'Renombrar categoría';
+    document.getElementById('cm-old-name').value = cat;
+    document.getElementById('cm-name').value     = cat;
+    document.getElementById('cm-error').classList.add('d-none');
+    catModal.show();
+}
+
+document.getElementById('btn-cm-save').addEventListener('click', async () => {
+    const oldName = document.getElementById('cm-old-name').value;
+    const newName = document.getElementById('cm-name').value.trim().toLowerCase().replace(/\s+/g,'_');
+    const errEl   = document.getElementById('cm-error');
+    if (!newName) { errEl.textContent = 'El nombre no puede estar vacío.'; errEl.classList.remove('d-none'); return; }
+
+    const isNew    = !oldName;
+    const isRename = !isNew && oldName !== newName;
+
+    let res;
+    if (isNew) {
+        res = await fetch('/api/feeds/category', {
+            method: 'POST', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({category: newName}),
+        });
+    } else if (isRename) {
+        res = await fetch('/api/feeds/category', {
+            method: 'PUT', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({old_name: oldName, new_name: newName}),
+        });
+    } else {
+        catModal.hide(); return;
+    }
+    const data = await res.json();
+    if (data.ok) { catModal.hide(); await loadFeeds(); }
+    else { errEl.textContent = data.error || 'Error.'; errEl.classList.remove('d-none'); }
+});
+
+async function deleteCategory(cat) {
+    const n   = Object.keys(feedsData[cat] || {}).length;
+    const msg = n > 0
+        ? `¿Eliminar categoría "${cat}" y sus ${n} fuentes? No se puede deshacer.`
+        : `¿Eliminar categoría "${cat}"?`;
+    if (!confirm(msg)) return;
+    const res  = await fetch('/api/feeds/category', {
+        method: 'DELETE', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({category: cat}),
+    });
+    const data = await res.json();
+    if (data.ok) await loadFeeds();
+    else alert(data.error || 'Error al eliminar.');
+}
+
+async function deleteFeed(cat, name) {
+    if (!confirm(`¿Eliminar "${name}" de ${cat}?`)) return;
+    const res  = await fetch('/api/feeds/source', {
+        method: 'DELETE', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({category: cat, name}),
+    });
+    const data = await res.json();
+    if (data.ok) await loadFeeds();
+    else alert(data.error || 'Error al eliminar.');
+}
+
+document.getElementById('feedsPanel').addEventListener('show.bs.offcanvas', loadFeeds);
 </script>
 </body>
 </html>

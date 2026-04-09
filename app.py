@@ -2,11 +2,13 @@ from flask import Flask, render_template, request, redirect, url_for, jsonify
 import sqlite3
 import json
 import os
+import re
 
 BASE_DIR    = os.path.dirname(os.path.abspath(__file__))
 DB_PATH     = os.path.join(BASE_DIR, "data", "noticias_ia.db")
 ESTADO_PATH = os.path.join(BASE_DIR, "data", "processor.state")
 CONFIG_PATH = os.path.join(BASE_DIR, "config", "processor_config.json")
+FEEDS_DIR   = os.path.join(BASE_DIR, "config", "feeds")
 
 CONFIG_DEFAULTS = {
     "engine": "gemini",
@@ -151,6 +153,123 @@ def api_set_config():
         data["schedule_enabled"] = bool(data["schedule_enabled"])
     saved = save_config(data)
     return jsonify({"ok": True, "config": saved})
+
+# ── Feeds API ──────────────────────────────────────────────────────────────────
+
+def _parse_source(val):
+    if isinstance(val, str):
+        return {"url": val, "weight": 5}
+    return {"url": val.get("url", ""), "weight": int(val.get("weight", 5))}
+
+def get_all_feeds():
+    result = {}
+    try:
+        for filename in sorted(os.listdir(FEEDS_DIR)):
+            if filename.startswith("feeds_") and filename.endswith(".json"):
+                cat = filename.replace("feeds_", "").replace(".json", "")
+                with open(os.path.join(FEEDS_DIR, filename), "r", encoding="utf-8") as f:
+                    raw = json.load(f)
+                result[cat] = {name: _parse_source(val) for name, val in raw.items()}
+    except Exception:
+        pass
+    return result
+
+def save_category_feeds(category, sources):
+    filepath = os.path.join(FEEDS_DIR, f"feeds_{category}.json")
+    with open(filepath, "w", encoding="utf-8") as f:
+        json.dump(sources, f, indent=2, ensure_ascii=False)
+
+def _safe_cat_name(raw):
+    return re.sub(r"[^a-z0-9_]", "_", raw.strip().lower())
+
+@app.route("/api/feeds", methods=["GET"])
+def api_get_feeds():
+    return jsonify(get_all_feeds())
+
+@app.route("/api/feeds/source", methods=["POST"])
+def api_add_feed():
+    data = request.get_json(force=True)
+    category = _safe_cat_name(data.get("category", ""))
+    name     = data.get("name", "").strip()
+    url_val  = data.get("url", "").strip()
+    weight   = max(1, min(10, int(data.get("weight", 5))))
+    if not category or not name or not url_val:
+        return jsonify({"ok": False, "error": "Faltan campos obligatorios"}), 400
+    feeds = get_all_feeds()
+    cat_feeds = feeds.get(category, {})
+    cat_feeds[name] = {"url": url_val, "weight": weight}
+    save_category_feeds(category, cat_feeds)
+    return jsonify({"ok": True})
+
+@app.route("/api/feeds/source", methods=["PUT"])
+def api_update_feed():
+    data     = request.get_json(force=True)
+    old_cat  = data.get("old_category", "").strip().lower()
+    old_name = data.get("old_name", "").strip()
+    new_cat  = _safe_cat_name(data.get("category", old_cat))
+    new_name = data.get("name", old_name).strip()
+    new_url  = data.get("url", "").strip()
+    new_weight = max(1, min(10, int(data.get("weight", 5))))
+    feeds = get_all_feeds()
+    if old_cat not in feeds or old_name not in feeds[old_cat]:
+        return jsonify({"ok": False, "error": "Feed no encontrado"}), 404
+    del feeds[old_cat][old_name]
+    save_category_feeds(old_cat, feeds[old_cat])
+    target = feeds.get(new_cat, {})
+    target[new_name] = {"url": new_url, "weight": new_weight}
+    save_category_feeds(new_cat, target)
+    return jsonify({"ok": True})
+
+@app.route("/api/feeds/source", methods=["DELETE"])
+def api_delete_feed():
+    data     = request.get_json(force=True)
+    category = data.get("category", "").strip().lower()
+    name     = data.get("name", "").strip()
+    feeds = get_all_feeds()
+    if category not in feeds or name not in feeds[category]:
+        return jsonify({"ok": False, "error": "Feed no encontrado"}), 404
+    del feeds[category][name]
+    save_category_feeds(category, feeds[category])
+    return jsonify({"ok": True})
+
+@app.route("/api/feeds/category", methods=["POST"])
+def api_add_category():
+    data     = request.get_json(force=True)
+    category = _safe_cat_name(data.get("category", ""))
+    if not category:
+        return jsonify({"ok": False, "error": "Nombre vacío"}), 400
+    filepath = os.path.join(FEEDS_DIR, f"feeds_{category}.json")
+    if os.path.exists(filepath):
+        return jsonify({"ok": False, "error": "Ya existe esa categoría"}), 409
+    with open(filepath, "w", encoding="utf-8") as f:
+        json.dump({}, f, indent=2)
+    return jsonify({"ok": True, "category": category})
+
+@app.route("/api/feeds/category", methods=["PUT"])
+def api_rename_category():
+    data     = request.get_json(force=True)
+    old_name = data.get("old_name", "").strip().lower()
+    new_name = _safe_cat_name(data.get("new_name", ""))
+    if not new_name:
+        return jsonify({"ok": False, "error": "Nombre vacío"}), 400
+    old_path = os.path.join(FEEDS_DIR, f"feeds_{old_name}.json")
+    new_path = os.path.join(FEEDS_DIR, f"feeds_{new_name}.json")
+    if not os.path.exists(old_path):
+        return jsonify({"ok": False, "error": "Categoría no encontrada"}), 404
+    if os.path.exists(new_path):
+        return jsonify({"ok": False, "error": "Ya existe una categoría con ese nombre"}), 409
+    os.rename(old_path, new_path)
+    return jsonify({"ok": True, "category": new_name})
+
+@app.route("/api/feeds/category", methods=["DELETE"])
+def api_delete_category():
+    data     = request.get_json(force=True)
+    category = data.get("category", "").strip().lower()
+    filepath = os.path.join(FEEDS_DIR, f"feeds_{category}.json")
+    if not os.path.exists(filepath):
+        return jsonify({"ok": False, "error": "Categoría no encontrada"}), 404
+    os.remove(filepath)
+    return jsonify({"ok": True})
 
 @app.route("/api/ollama/models")
 def api_ollama_models():
