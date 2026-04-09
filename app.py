@@ -3,8 +3,10 @@ import sqlite3
 import json
 import os
 import re
+import sys
 
-BASE_DIR    = os.path.dirname(os.path.abspath(__file__))
+# En modo frozen (PyInstaller) los datos van junto al .exe; en dev, al lado de app.py
+BASE_DIR    = os.path.dirname(sys.executable) if getattr(sys, 'frozen', False) else os.path.dirname(os.path.abspath(__file__))
 DB_PATH     = os.path.join(BASE_DIR, "data", "noticias_ia.db")
 ESTADO_PATH = os.path.join(BASE_DIR, "data", "processor.state")
 CONFIG_PATH = os.path.join(BASE_DIR, "config", "processor_config.json")
@@ -204,7 +206,7 @@ def api_add_feed():
 @app.route("/api/feeds/source", methods=["PUT"])
 def api_update_feed():
     data     = request.get_json(force=True)
-    old_cat  = data.get("old_category", "").strip().lower()
+    old_cat  = _safe_cat_name(data.get("old_category", ""))
     old_name = data.get("old_name", "").strip()
     new_cat  = _safe_cat_name(data.get("category", old_cat))
     new_name = data.get("name", old_name).strip()
@@ -223,7 +225,7 @@ def api_update_feed():
 @app.route("/api/feeds/source", methods=["DELETE"])
 def api_delete_feed():
     data     = request.get_json(force=True)
-    category = data.get("category", "").strip().lower()
+    category = _safe_cat_name(data.get("category", ""))
     name     = data.get("name", "").strip()
     feeds = get_all_feeds()
     if category not in feeds or name not in feeds[category]:
@@ -248,7 +250,7 @@ def api_add_category():
 @app.route("/api/feeds/category", methods=["PUT"])
 def api_rename_category():
     data     = request.get_json(force=True)
-    old_name = data.get("old_name", "").strip().lower()
+    old_name = _safe_cat_name(data.get("old_name", ""))
     new_name = _safe_cat_name(data.get("new_name", ""))
     if not new_name:
         return jsonify({"ok": False, "error": "Nombre vacío"}), 400
@@ -264,7 +266,7 @@ def api_rename_category():
 @app.route("/api/feeds/category", methods=["DELETE"])
 def api_delete_category():
     data     = request.get_json(force=True)
-    category = data.get("category", "").strip().lower()
+    category = _safe_cat_name(data.get("category", ""))
     filepath = os.path.join(FEEDS_DIR, f"feeds_{category}.json")
     if not os.path.exists(filepath):
         return jsonify({"ok": False, "error": "Categoría no encontrada"}), 404

@@ -1,18 +1,24 @@
 # Secretos y configuración personal
 .env
 
-# Base de datos (No la subas, cada PC debe generar la suya o descargarla aparte)
+# Base de datos y estado de runtime
 *.db
+data/processor.state
 
-# Entorno virtual y temporales
+# Build de PyInstaller
+build/
+dist/
+*.spec.bak
+
+# Entorno virtual y caché
 venv/
 __pycache__/
+*.pyc
+*.pyo
 log_history/
 
-# Configuración del editor (PyCharm)
+# Configuración del editor
 .idea/
-
-# Configuración de VS Code (opcional si lo usas)
 .vscode/
 
 # Archivos temporales del sistema

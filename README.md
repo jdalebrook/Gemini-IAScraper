@@ -6,67 +6,25 @@ Un sistema inteligente de curación y procesamiento de noticias técnicas con so
 
 ## Características principales
 
-- **Multi-fuente RSS** — 17 categorías de feeds: IA, ML Engineering, MLOps, GCP, Cloud Architecture, Kubernetes, Seguridad, Ciberseguridad, Vulnerabilidades, Frontend, Python, Avances Tecnológicos, Avances Informáticos, Tecnología, Cosmos, Física y Psicología.
-- **Doble motor de IA** — Soporte nativo para **Google Gemini** (free/paid tier) y **Ollama** (modelos locales como `qwen2.5:14b`). Seleccionable en tiempo real desde la UI.
-- **Traducción y resumen automático** — Cada artículo se traduce al español y recibe un resumen ejecutivo generado por IA.
+- **Multi-fuente RSS con ponderación** — Gestión visual de feeds por categoría. Cada fuente tiene un peso (1–10) que controla cuántos artículos se extraen por ciclo.
+- **Panel de gestión de feeds** — Añade, edita, elimina y repondera fuentes y categorías desde la UI sin tocar ficheros.
+- **Doble motor de IA** — Soporte nativo para **Google Gemini** (free/paid) y **Ollama** (modelos locales). Seleccionable en tiempo real desde la UI.
+- **Traducción y resumen automático** — Cada artículo se traduce al español con resumen ejecutivo generado por IA.
 - **Anti-fake news** — Puntuación de fiabilidad 1–10 basada en calidad técnica y objetividad de la fuente.
 - **Deduplicación** — SQLite con hashing MD5 para evitar procesar el mismo artículo dos veces.
-- **Control de energía** — Slider de modo energético (0–100) que regula la velocidad de procesamiento para ajustar el consumo de CPU y cuota de API.
-- **Procesamiento programado** — Ventana horaria configurable para ejecutar el procesador solo en horas definidas (ej. 02:00–07:00).
-- **Dark mode** — Alternancia entre tema claro, oscuro y sistema desde la barra de navegación.
-- **Panel de control web** — Dashboard Bootstrap 5 con filtros por categoría, marcado de favoritos/importantes, archivado y ocultado de noticias.
-- **Configuración en vivo** — Offcanvas de configuración que persiste cambios sin reiniciar el proceso.
-- **Estado del procesador** — Indicador visual (running/paused/stopped) y control de pausa/reanudación desde la UI.
+- **Control de energía** — Slider de modo energético (Turbo → Eco) que regula velocidad y consumo de API.
+- **Procesamiento programado** — Ventana horaria configurable (soporta franjas nocturnas, ej. 22h–06h).
+- **Dark mode** — Tema claro, oscuro y sistema desde la barra de navegación.
+- **Configuración en vivo** — Cambios persistidos sin reiniciar el proceso.
+- **Distribuible como .exe** — Build de un clic para Windows con PyInstaller.
 
 ---
 
-## Estructura del proyecto
-
-```
-Gemini-IAScraper/
-├── app.py                    # Servidor Flask (entry point web)
-├── run_all.py                # Orquestador principal
-├── requirements.txt
-├── .env                      # API keys (no incluido en git)
-├── .env.example
-│
-├── app/
-│   ├── templates/
-│   │   └── index.html        # Dashboard web (Bootstrap 5)
-│   └── static/
-│       ├── icon.ico
-│       └── icon128.png
-│
-├── core/
-│   ├── database.py           # Inicialización y migración de SQLite
-│   ├── scraper.py            # Recolector de feeds RSS
-│   ├── ia_processor.py       # Motor de IA (Gemini / Ollama)
-│   └── actions.py            # Lógica de negocio
-│
-├── config/
-│   ├── processor_config.json # Configuración del procesador
-│   └── feeds/                # 17 archivos JSON con URLs de RSS por categoría
-│
-├── scripts/
-│   ├── check_results.py      # Verifica resultados del procesamiento
-│   ├── debug_models.py       # Debug de modelos disponibles
-│   ├── lista_modelos.py      # Lista modelos Ollama detectados
-│   └── IAScrapper.bat        # Lanzador Windows
-│
-└── data/
-    ├── noticias_ia.db        # Base de datos SQLite
-    └── processor.state       # Estado del procesador (IPC entre procesos)
-```
-
----
-
-## Instalación
+## Instalación (desarrollo)
 
 ### Requisitos
 - Python 3.10+
 - (Opcional) [Ollama](https://ollama.com) instalado y corriendo localmente
-
-### Pasos
 
 ```bash
 # 1. Clonar el repositorio
@@ -75,58 +33,137 @@ cd Gemini-IAScraper
 
 # 2. Crear entorno virtual e instalar dependencias
 python -m venv venv
-venv\Scripts\activate      # Windows
-# source venv/bin/activate  # Linux/macOS
+venv\Scripts\activate        # Windows
+# source venv/bin/activate   # Linux/macOS
 pip install -r requirements.txt
 
-# 3. Configurar variables de entorno
+# 3. Configurar claves de API
 cp .env.example .env
-# Editar .env y añadir tus claves:
+# Editar .env:
 # GEMINI_API_KEY_FREE=tu_clave_ai_studio
-# GEMINI_API_KEY_PAID=tu_clave_google_cloud
+# GEMINI_API_KEY_PAID=tu_clave_google_cloud  (opcional)
 
 # 4. Ejecutar
 python run_all.py
 ```
 
-El sistema abrirá automáticamente `http://127.0.0.1:5000` en el navegador.
+El sistema abre automáticamente `http://127.0.0.1:5000`.
 
 ---
 
-## Configuración del procesador
+## Distribución Windows (.exe)
 
-El archivo `config/processor_config.json` controla el comportamiento del motor:
+Para compartir con usuarios que no tienen Python instalado:
 
-| Campo | Descripción |
-|---|---|
-| `engine` | `"gemini"` o `"ollama"` |
-| `gemini_mode` | `"free"` (límite ~100/día) o `"paid"` (~800/día) |
-| `gemini_model` | Modelo Gemini a usar (ej. `gemini-2.5-flash-lite`) |
-| `ollama_host` | URL del servidor Ollama |
-| `ollama_model` | Modelo local (ej. `qwen2.5:14b`) |
-| `ollama_temperature` | Temperatura de generación (0.0–1.0) |
-| `batch_size` | Artículos procesados por lote |
-| `pause_seconds` | Pausa entre lotes |
-| `energy_mode` | Velocidad de procesamiento (0=mínimo, 100=máximo) |
-| `schedule_enabled` | Activar ventana horaria programada |
-| `schedule_start` / `schedule_end` | Horas de inicio y fin del procesamiento |
+```bat
+build_exe.bat
+```
 
-Todos los campos son editables desde el panel web sin necesidad de reiniciar.
+Genera `dist/Skully/` con todo incluido. El usuario solo necesita:
+1. Descomprimir el `.zip`
+2. Renombrar `.env.example` a `.env` y pegar su `GEMINI_API_KEY_FREE`
+3. Doble clic en `Skully.exe`
+
+> Si tiene Ollama instalado y corriendo, lo detecta automáticamente.
 
 ---
 
-## Motores de IA soportados
+## Gestión de feeds
+
+Los feeds se gestionan desde el panel izquierdo (**Feeds** en la navbar):
+
+- **Añadir / editar / eliminar** fuentes RSS dentro de cada categoría
+- **Crear / renombrar / eliminar** categorías completas
+- **Peso de relevancia (1–10)** — controla cuántos artículos extrae el scraper por fuente en cada ciclo:
+
+| Peso | Artículos/ciclo |
+|------|----------------|
+| 1    | ~2             |
+| 5    | ~8 (default)   |
+| 10   | ~16            |
+
+Los ficheros `config/feeds/feeds_<categoria>.json` admiten formato simple o extendido:
+
+```json
+{
+  "OpenAI":  "https://openai.com/news/rss.xml",
+  "MIT_AI":  { "url": "https://technologyreview.com/.../feed", "weight": 8 }
+}
+```
+
+---
+
+## Motores de IA
 
 ### Google Gemini (nube)
-Requiere `GEMINI_API_KEY_FREE` o `GEMINI_API_KEY_PAID` en `.env`. Compatible con cualquier modelo `gemini-*` disponible en AI Studio / Google Cloud.
+Requiere `GEMINI_API_KEY_FREE` o `GEMINI_API_KEY_PAID` en `.env`.
+
+| Modo  | Limite diario aprox. | Coste aprox./articulo |
+|-------|---------------------|-----------------------|
+| Free  | 100 articulos       | 0.00 EUR              |
+| Paid  | 800 articulos       | 0.00012 EUR           |
 
 ### Ollama (local)
-No requiere API key. Instala Ollama y descarga un modelo:
+Sin API key. Instala Ollama y descarga un modelo:
 ```bash
 ollama pull qwen2.5:14b
 ```
-El sistema detecta automáticamente los modelos disponibles y los lista en la UI.
+La UI lista los modelos disponibles y permite cambiar temperatura en tiempo real.
 
 ---
 
-Creado con Python, Flask y Gemini / Ollama.
+## Configuracion del procesador
+
+`config/processor_config.json` — editable desde la UI sin reiniciar:
+
+| Campo | Descripcion |
+|-------|-------------|
+| `engine` | `"gemini"` o `"ollama"` |
+| `gemini_mode` | `"free"` o `"paid"` |
+| `gemini_model` | Modelo Gemini (ej. `gemini-2.5-flash-lite`) |
+| `ollama_host` | URL del servidor Ollama |
+| `ollama_model` | Modelo local (ej. `qwen2.5:14b`) |
+| `ollama_temperature` | Temperatura 0.0–1.0 |
+| `batch_size` | Articulos por lote |
+| `pause_seconds` | Pausa entre lotes |
+| `energy_mode` | 0=Turbo · 25=Rapido · 50=Equilibrado · 75=Ahorro · 100=Eco |
+| `schedule_enabled` | Activar ventana horaria |
+| `schedule_start` / `schedule_end` | Horas de inicio y fin |
+| `min_pending` | Minimo de articulos pendientes para activar el procesador |
+
+---
+
+## Estructura del proyecto
+
+```
+Gemini-IAScraper/
+├── app.py                     # Servidor Flask + API REST
+├── run_all.py                 # Orquestador (desarrollo, usa subprocesos)
+├── run_bundled.py             # Orquestador para .exe (usa threads)
+├── skully.spec                # Spec de PyInstaller
+├── build_exe.bat              # Build de un clic para Windows
+├── requirements.txt
+├── .env                       # API keys (no incluido en git)
+├── .env.example
+│
+├── app/
+│   ├── templates/index.html   # Dashboard web (Bootstrap 5)
+│   └── static/
+│
+├── core/
+│   ├── database.py            # Inicializacion y migracion SQLite
+│   ├── scraper.py             # Recolector RSS con soporte de pesos
+│   ├── ia_processor.py        # Motor IA (Gemini / Ollama)
+│   └── actions.py
+│
+├── config/
+│   ├── processor_config.json  # Configuracion del procesador
+│   └── feeds/                 # JSONs de fuentes RSS por categoria
+│
+└── data/                      # Generado en runtime (no en git)
+    └── noticias_ia.db
+```
+
+---
+
+Creado con Python, Flask, Bootstrap 5 y Gemini / Ollama.

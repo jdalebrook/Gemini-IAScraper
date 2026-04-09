@@ -1,11 +1,13 @@
 import os
 import sqlite3
 import json
+import sys
 import time
 from datetime import datetime
 from dotenv import load_dotenv
 
-PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PROJECT_ROOT = (os.path.dirname(sys.executable) if getattr(sys, 'frozen', False)
+                else os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 load_dotenv(os.path.join(PROJECT_ROOT, ".env"))
 DB_PATH     = os.path.join(PROJECT_ROOT, "data", "noticias_ia.db")
 ESTADO_PATH = os.path.join(PROJECT_ROOT, "data", "processor.state")
@@ -204,7 +206,8 @@ def procesar_lote():
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         cursor.execute(
-            f"SELECT * FROM noticias WHERE titular_es IS NULL ORDER BY id DESC LIMIT {batch}"
+            "SELECT * FROM noticias WHERE titular_es IS NULL ORDER BY id DESC LIMIT ?",
+            (int(batch),)
         )
         filas = cursor.fetchall()
 
@@ -246,8 +249,8 @@ def procesar_lote():
     return True
 
 
-if __name__ == "__main__":
-    print("--- INICIANDO PROCESADOR ---")
+def run_loop():
+    """Bucle principal del procesador. Llamable desde threads o directamente."""
     set_estado("running")
     while True:
         try:
@@ -270,3 +273,8 @@ if __name__ == "__main__":
             print("\n👋 Cerrando procesador...")
             set_estado("stopped")
             break
+
+
+if __name__ == "__main__":
+    print("--- INICIANDO PROCESADOR ---")
+    run_loop()
