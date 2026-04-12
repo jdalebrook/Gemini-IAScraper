@@ -26,6 +26,7 @@ CONFIG_DEFAULTS = {
     "schedule_start": 2,
     "schedule_end": 7,
     "min_pending": 0,
+    "scrape_interval_hours": 8,
 }
 
 app = Flask(__name__, template_folder="app/templates", static_folder="app/static")
@@ -151,6 +152,8 @@ def api_set_config():
         data["schedule_end"] = int(data["schedule_end"])
     if "min_pending" in data:
         data["min_pending"] = int(data["min_pending"])
+    if "scrape_interval_hours" in data:
+        data["scrape_interval_hours"] = max(1, int(data["scrape_interval_hours"]))
     if "schedule_enabled" in data:
         data["schedule_enabled"] = bool(data["schedule_enabled"])
     saved = save_config(data)

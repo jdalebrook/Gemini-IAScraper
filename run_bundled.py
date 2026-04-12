@@ -21,9 +21,24 @@ def _run_flask():
     app.run(host='127.0.0.1', port=5000, debug=False, use_reloader=False, threaded=True)
 
 
+def _run_scraper(interval_hours, ready_event):
+    from core.scraper import run_loop_scraper
+    run_loop_scraper(interval_hours, ready_event)
+
+
 def _run_processor():
     from core import ia_processor
     ia_processor.run_loop()
+
+
+def _get_scrape_interval():
+    import json
+    config_path = os.path.join(_ROOT, "config", "processor_config.json")
+    try:
+        with open(config_path) as f:
+            return max(1, int(json.load(f).get("scrape_interval_hours", 8)))
+    except Exception:
+        return 8
 
 
 def main():
@@ -37,9 +52,14 @@ def main():
     time.sleep(2)
     webbrowser.open("http://127.0.0.1:5000")
 
-    print("🛰️  Scrapeando fuentes RSS...")
-    from core.scraper import extraer_noticias
-    extraer_noticias()
+    interval = _get_scrape_interval()
+    scraper_ready = threading.Event()
+    print(f"🛰️  Iniciando Scraper periódico (cada {interval}h)...")
+    threading.Thread(target=_run_scraper, args=(interval, scraper_ready),
+                     daemon=True, name="Scraper").start()
+
+    print("⏳ Esperando primer scraping antes de arrancar el procesador...")
+    scraper_ready.wait()
 
     print("🧠 Iniciando Procesador IA...")
     threading.Thread(target=_run_processor, daemon=True, name="Procesador").start()

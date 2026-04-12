@@ -4,11 +4,14 @@ import hashlib
 import json
 import os
 import sys
+import time
+from datetime import datetime
 
 PROJECT_ROOT = (os.path.dirname(sys.executable) if getattr(sys, 'frozen', False)
                 else os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-DB_PATH = os.path.join(PROJECT_ROOT, "data", "noticias_ia.db")
-FEEDS_DIR = os.path.join(PROJECT_ROOT, "config", "feeds")
+DB_PATH        = os.path.join(PROJECT_ROOT, "data", "noticias_ia.db")
+FEEDS_DIR      = os.path.join(PROJECT_ROOT, "config", "feeds")
+SCRAPER_STATE  = os.path.join(PROJECT_ROOT, "data", "scraper.state")
 
 LIMIT_POR_CATEGORIA = 50
 LIMIT_POR_FUENTE    = 8   # peso 5 (default)
@@ -119,6 +122,33 @@ def extraer_noticias():
     for cat, n in totales.items():
         print(f"  {cat.ljust(30)} {n} entradas")
     print(f"\n✨ Scrapeo finalizado — {nuevas_total} noticias nuevas insertadas.")
+
+def _write_scraper_state(interval_hours):
+    with open(SCRAPER_STATE, "w") as f:
+        json.dump({
+            "last_scrape": datetime.now().isoformat(timespec="seconds"),
+            "interval_hours": interval_hours,
+        }, f)
+
+
+def run_loop_scraper(interval_hours=8, ready_event=None):
+    """Ejecuta scraping al arrancar y luego cada interval_hours horas.
+
+    ready_event: threading.Event opcional; se activa tras el primer scraping
+    para que el procesador IA pueda arrancar en cuanto haya datos.
+    """
+    while True:
+        print(f"\n🛰️  [SCRAPER] Iniciando ronda ({datetime.now().strftime('%H:%M')})")
+        extraer_noticias()
+        _write_scraper_state(interval_hours)
+        if ready_event is not None:
+            ready_event.set()
+            ready_event = None  # solo señalizar la primera vez
+        next_dt = datetime.fromtimestamp(time.time() + interval_hours * 3600)
+        print(f"🕐 [SCRAPER] Próxima ronda a las {next_dt.strftime('%H:%M')} "
+              f"(en {interval_hours}h)")
+        time.sleep(interval_hours * 3600)
+
 
 if __name__ == "__main__":
     extraer_noticias()

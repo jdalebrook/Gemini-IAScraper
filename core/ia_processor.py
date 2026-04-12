@@ -3,15 +3,16 @@ import sqlite3
 import json
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from dotenv import load_dotenv
 
 PROJECT_ROOT = (os.path.dirname(sys.executable) if getattr(sys, 'frozen', False)
                 else os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 load_dotenv(os.path.join(PROJECT_ROOT, ".env"))
-DB_PATH     = os.path.join(PROJECT_ROOT, "data", "noticias_ia.db")
-ESTADO_PATH = os.path.join(PROJECT_ROOT, "data", "processor.state")
-CONFIG_PATH = os.path.join(PROJECT_ROOT, "config", "processor_config.json")
+DB_PATH        = os.path.join(PROJECT_ROOT, "data", "noticias_ia.db")
+ESTADO_PATH    = os.path.join(PROJECT_ROOT, "data", "processor.state")
+CONFIG_PATH    = os.path.join(PROJECT_ROOT, "config", "processor_config.json")
+SCRAPER_STATE  = os.path.join(PROJECT_ROOT, "data", "scraper.state")
 
 LIMITE_DIARIO_FREE  = 100
 LIMITE_DIARIO_PAID  = 800
@@ -249,6 +250,20 @@ def procesar_lote():
     return True
 
 
+def _seconds_to_next_scrape():
+    """Segundos restantes hasta la próxima ronda de scraping. None si no hay estado."""
+    try:
+        with open(SCRAPER_STATE) as f:
+            state = json.load(f)
+        last     = datetime.fromisoformat(state["last_scrape"])
+        interval = state.get("interval_hours", 8)
+        next_dt  = last + timedelta(hours=interval)
+        remaining = (next_dt - datetime.now()).total_seconds()
+        return max(0.0, remaining)
+    except Exception:
+        return None
+
+
 def run_loop():
     """Bucle principal del procesador. Llamable desde threads o directamente."""
     set_estado("running")
@@ -266,8 +281,16 @@ def run_loop():
             elif res == "SCHEDULE":
                 time.sleep(1800)
             elif not res:
-                print("☕ Todo procesado. Esperando 10 min...")
-                time.sleep(600)
+                secs = _seconds_to_next_scrape()
+                if secs is not None and secs > 300:
+                    wake_at = datetime.now() + timedelta(seconds=secs - 60)
+                    print(f"💤 BD vacía. Próximo scraping en "
+                          f"{secs / 3600:.1f}h ({wake_at.strftime('%H:%M')}). "
+                          f"Durmiendo hasta entonces...")
+                    time.sleep(max(60, secs - 60))
+                else:
+                    print("☕ Todo procesado. Esperando 10 min...")
+                    time.sleep(600)
 
         except KeyboardInterrupt:
             print("\n👋 Cerrando procesador...")
